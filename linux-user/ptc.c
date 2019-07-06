@@ -345,7 +345,7 @@ void ptc_init(void) {
 //        target_argv[i++] = strdup(argv0);
 //    }
     target_argv[0] ="hello";
-    target_argv[0] = NULL;
+    target_argv[target_argc] = NULL;
     ts = g_malloc0 (sizeof(TaskState));
     init_task_state(ts);
 
@@ -740,7 +740,7 @@ unsigned long ptc_translate(uint64_t virtual_address, PTCInstructionList *instru
    
     tc_ptr = tb->tc_ptr;
     cpu_tb_exec(cpu, tc_ptr);
-   // printf("eip: %lx\n",env->eip);
+    printf("eip: %lx\n",env->eip);
    // printf("exception_next_eip: %lx\n",env->exception_next_eip);
 
     dump_tinycode(s, instructions);

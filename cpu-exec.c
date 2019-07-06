@@ -482,6 +482,7 @@ int cpu_exec(CPUState *cpu)
                 spin_lock(&tcg_ctx.tb_ctx.tb_lock);
                 have_tb_lock = true;
                 tb = tb_find_fast(cpu);
+                printf("tb: %lx\n",tb->pc);
                 /* Note: we do it here to avoid a gcc bug on Mac OS X when
                    doing it in tb_find_slow */
                 if (tcg_ctx.tb_ctx.tb_invalidated_flag) {
@@ -499,8 +500,8 @@ int cpu_exec(CPUState *cpu)
                    spans two pages, we cannot safely do a direct
                    jump. */
                 if (next_tb != 0 && tb->page_addr[1] == -1) {
-                    tb_add_jump((TranslationBlock *)(next_tb & ~TB_EXIT_MASK),
-                                next_tb & TB_EXIT_MASK, tb);
+                   // tb_add_jump((TranslationBlock *)(next_tb & ~TB_EXIT_MASK),
+                   //             next_tb & TB_EXIT_MASK, tb);
                 }
                 have_tb_lock = false;
                 spin_unlock(&tcg_ctx.tb_ctx.tb_lock);
