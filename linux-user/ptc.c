@@ -810,7 +810,7 @@ size_t ptc_translate(uint64_t virtual_address, PTCInstructionList *instructions,
     else{
     
       printf("eip: %lx\n",env->eip);
-   //  exit(1);
+      exit(1);
    // printf("exception_next_eip: %lx\n",env->exception_next_eip);
     }
     *dymvirtual_address = env->eip;
@@ -858,18 +858,18 @@ void ptc_getBranchCPUeip(void){
 unsigned long ptc_do_syscall2(void){
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
 
-    if(env->regs[R_EAX]==231){
-      env->eip = env->exception_next_eip;
-      cpu->exception_index = -1;
-      
-      return 0;
-    }
-    if(env->regs[R_EAX]==202){
-      env->eip = env->exception_next_eip;
-      cpu->exception_index = -1;
-   
-      return 0;//TARGET_NR_futex
-    }
+//    if(env->regs[R_EAX]==231){
+//      env->eip = env->exception_next_eip;
+//      cpu->exception_index = -1;
+//      
+//      return 0;
+//    }
+//    if(env->regs[R_EAX]==202){
+//      env->eip = env->exception_next_eip;
+//      cpu->exception_index = -1;
+//   
+//      return 0;//TARGET_NR_futex
+//    }
     
     env->regs[R_EAX] = do_syscall(env,
 				  env->regs[R_EAX],
