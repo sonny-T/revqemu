@@ -196,6 +196,8 @@ static inline tcg_target_ulong cpu_tb_exec(CPUState *cpu, uint8_t *tb_ptr)
     }
 #endif /* DEBUG_DISAS */
 
+   // printf("PC: %lx  DF: %d\n",env->eip,env->df);  
+
     cpu->can_do_io = 0;
     next_tb = tcg_qemu_tb_exec(env, tb_ptr);
     cpu->can_do_io = 1;
