@@ -800,7 +800,7 @@ size_t ptc_translate(uint64_t virtual_address, PTCInstructionList *instructions,
 
     tb = tb_gen_code2(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions);
 
-    printf("pc: %lx  df: %d\n",env->eip,env->df);
+    //printf("pc: %lx  df: %d\n",env->eip,env->df);
   
     if(sigsetjmp(cpu->jmp_env,1)==0){
     
