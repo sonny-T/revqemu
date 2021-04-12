@@ -8099,12 +8099,12 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
 	    tb->isIndirectJmp = pc_ptr;
 	if(dc->is_directjmp)
             tb->isDirectJmp = pc_ptr;
-        if(dc->is_ret){
-	    tb->isRet = pc_ptr; 
-	    tb->CFIAddr = current_pc;	
-	}
+        if(dc->is_ret)
+	    tb->isRet = pc_ptr;	
         if(dc->is_syscall)
             tb->isSyscall = pc_ptr;
+
+        tb->CFIAddr = current_pc;
 #endif
 
         /* stop translation if indicated */
