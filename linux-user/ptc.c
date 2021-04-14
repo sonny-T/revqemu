@@ -222,6 +222,7 @@ uint64_t is_directjmp = 0;
 uint64_t is_ret = 0;
 uint64_t cfi_addr = 0;
 uint64_t is_syscall = 0;
+uint64_t block_size = 0;
 
 static unsigned long cs_base = 0;
 static CPUState *cpu = NULL;
@@ -314,6 +315,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.illegalAccessAddr = &illegal_AccessAddr;
   result.CFIAddr = &cfi_addr;
   result.isSyscall = &is_syscall;
+  result.BlockSize = &block_size;
 
   *output = result;
 
@@ -711,6 +713,7 @@ static TranslationBlock *tb_gen_code2(TCGContext *s, CPUState *cpu,
     tb->isDirectJmp = 0;
     tb->isRet = 0;
     tb->CFIAddr = 0;
+    tb->size = 0;
 
     for (i = 0; i < MAX_RANGES; i++)
       if (ranges[i].start <= pc && pc < ranges[i].end)
@@ -901,6 +904,7 @@ size_t ptc_translate(uint64_t virtual_address, PTCInstructionList *instructions,
     is_ret = 0;
     callnext = 0;
     cfi_addr = 0;
+    block_size = 0;
 
     illegal_AccessAddr = 0;
 
@@ -957,6 +961,7 @@ size_t ptc_translate(uint64_t virtual_address, PTCInstructionList *instructions,
 int64_t ptc_exec(uint64_t virtual_address){
     TCGContext *s = &tcg_ctx;
     TranslationBlock *tb = NULL;
+    block_size = 0;
 
     uint8_t *tc_ptr;
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
@@ -980,6 +985,7 @@ int64_t ptc_exec(uint64_t virtual_address){
         tb = tb_gen_code2(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions);
         cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
     }
+    block_size = tb->size;
     if(tb->isSyscall)
       return -1;
  

@@ -302,6 +302,7 @@ typedef struct {
   uint64_t *illegalAccessAddr;
   uint64_t *CFIAddr;
   uint64_t *isSyscall;
+  uint64_t *BlockSize;
 
 } PTCInterface;
 
