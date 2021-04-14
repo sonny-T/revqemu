@@ -893,7 +893,7 @@ size_t ptc_translate(uint64_t virtual_address, PTCInstructionList *instructions,
 
     uint8_t *tc_ptr;
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
-    cpu->exception_index = 11;
+    cpu->exception_index = -1;
     is_indirect = 0;
     is_call = 0;
     env->eip = virtual_address;
@@ -986,8 +986,10 @@ int64_t ptc_exec(uint64_t virtual_address){
         cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
     }
     block_size = tb->size;
-    if(tb->isSyscall)
+    if(tb->isSyscall){
+      cpu->exception_index = -1;
       return -1;
+    }
  
     if(sigsetjmp(cpu->jmp_env,1)==0){ 
       tc_ptr = tb->tc_ptr;
