@@ -890,7 +890,7 @@ size_t ptc_translate(uint64_t virtual_address, PTCInstructionList *instructions,
 
     uint8_t *tc_ptr;
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
-
+    cpu->exception_index = 11;
     is_indirect = 0;
     is_call = 0;
     env->eip = virtual_address;
