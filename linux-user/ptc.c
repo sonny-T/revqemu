@@ -713,6 +713,7 @@ static TranslationBlock *tb_gen_code2(TCGContext *s, CPUState *cpu,
     tb->isDirectJmp = 0;
     tb->isRet = 0;
     tb->CFIAddr = 0;
+    tb->isIllegal = 0;
     tb->size = 0;
 
     for (i = 0; i < MAX_RANGES; i++)
@@ -985,6 +986,8 @@ int64_t ptc_exec(uint64_t virtual_address){
         tb = tb_gen_code2(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions);
         cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
     }
+    if(tb->isIllegal)
+      return -1;
     block_size = tb->size;
     if(tb->isSyscall){
       cpu->exception_index = -1;
@@ -1134,7 +1137,7 @@ uint32_t ptc_isValidExecuteAddr(uint64_t va){
   return 0;
 }
 
-unsigned long ptc_do_syscall2(){
+unsigned long ptc_do_syscall2(void){
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
 
     if(env->regs[R_EAX]==231 ||

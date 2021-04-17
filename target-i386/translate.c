@@ -103,6 +103,7 @@ typedef struct DisasContext {
     int is_directjmp; /* 1 = means have direct jmp */
     int is_ret; /* 1 = means have ret */
     int is_syscall;
+    int is_illegal;
 #endif 
 
     /* current block context */
@@ -7893,6 +7894,9 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
         gen_helper_unlock();
     /* XXX: ensure that no lock was generated */
     gen_exception(s, EXCP06_ILLOP, pc_start - s->cs_base);
+#ifdef CONFIG_LIBTINYCODE
+    s->is_illegal = 1;
+#endif
     return s->pc;
 }
 
@@ -8047,6 +8051,7 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
     dc->is_directjmp = 0;
     dc->is_ret = 0;
     dc->is_syscall = 0;
+    dc->is_illegal = 0;
 #endif
 
     dc->is_jmp = DISAS_NEXT;
@@ -8103,7 +8108,8 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
 	    tb->isRet = pc_ptr;	
         if(dc->is_syscall)
             tb->isSyscall = pc_ptr;
-
+        if(dc->is_illegal)
+            tb->isIllegal = dc->is_illegal;
         tb->CFIAddr = current_pc;
 #endif
 

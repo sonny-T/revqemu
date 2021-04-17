@@ -214,6 +214,7 @@ struct TranslationBlock {
     target_ulong isRet;
     target_ulong CFIAddr;
     target_ulong isSyscall;
+    uint32_t isIllegal;
 #endif
     
 };
