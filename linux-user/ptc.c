@@ -736,7 +736,7 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
     /* Force 64-bit decoding */
     flag = 2;
 #endif
-    if(!target_disas_max2(stderr, cpu, /* GUEST_BASE + */ tb->pc, tb->size, flag, -1) || !disassembler_error){
+    if(!target_disas_max2(stderr, cpu, /* GUEST_BASE + */ tb->pc, tb->size, flag, -1)){
         /* generate machine code */
         gen_code_buf = tb->tc_ptr;
         tb->tb_next_offset[0] = 0xffff;
@@ -783,10 +783,9 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
         {
             phys_page2 = get_page_addr_code(env, virt_page2);
         }
-    }else{
-      disassembler_error = 0;
+    }else
       tb->isIllegal = 1;
-    }
+    
     tb_link_page(tb, phys_pc, phys_page2);
 
     return tb;

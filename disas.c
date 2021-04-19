@@ -294,6 +294,10 @@ int target_disas_max2(FILE *out, CPUState *cpu, target_ulong code,
         }
 #endif
 	fprintf(out, "\n");
+        if(disassembler_error){
+            disassembler_error = 0;
+            return 1;  
+        }
 	if (count < 0 || max == 1)
 	    break;
         if (size < count) {
