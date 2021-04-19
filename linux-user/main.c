@@ -36,6 +36,7 @@
 
 const char *exec_path;
 
+int disassembler_error = 0;
 int singlestep;
 const char *filename;
 const char *argv0;
