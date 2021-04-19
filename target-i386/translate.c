@@ -103,7 +103,7 @@ typedef struct DisasContext {
     int is_directjmp; /* 1 = means have direct jmp */
     int is_ret; /* 1 = means have ret */
     int is_syscall;
-    int is_illegal;
+    int is_illegal; // true means that there have illegal instructions in tb
 #endif 
 
     /* current block context */
