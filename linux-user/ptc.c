@@ -670,6 +670,127 @@ static PTCInstructionList dump_tinycode(TCGContext *s) {
 extern void tb_link_page(TranslationBlock *tb, tb_page_addr_t phys_pc,
                          tb_page_addr_t phys_page2);
 
+static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
+                                     target_ulong pc, target_ulong cs_base,
+                                     int flags, int cflags,
+                                     PTCInstructionList *instructions)
+{
+    CPUArchState *env = cpu->env_ptr;
+    TranslationBlock *tb;
+    tb_page_addr_t phys_pc,phys_page2;
+    target_ulong virt_page2;
+    int i = 0;
+    int flag = 0;
+
+    tcg_insn_unit *gen_code_buf;
+    int gen_code_size;
+
+    PTCInstructionList instructions1;
+
+    phys_pc = get_page_addr_code(env, pc);
+
+    if (use_icount) {
+        cflags |= CF_USE_ICOUNT;
+    }
+
+    tb = tb_alloc2(pc);
+    if (!tb) {
+        /* flush must be done */
+        tb_flush(cpu);
+        /* cannot fail at this point */
+        tb = tb_alloc2(pc);
+        /* Don't forget to invalidate previous TB info.  */
+        tcg_ctx.tb_ctx.tb_invalidated_flag = 1;
+    }
+
+    tb->tc_ptr = tcg_ctx.code_gen_ptr;
+    tb->cs_base = cs_base;
+    tb->flags = flags;
+    tb->cflags = cflags;
+    tb->isIndirect = 0;
+    tb->isCall = 0;
+    tb->CallNext = 0;
+    tb->isIndirectJmp = 0;
+    tb->isDirectJmp = 0;
+    tb->isRet = 0;
+    tb->CFIAddr = 0;
+    tb->isIllegal = 0;
+    tb->size = 0;
+
+    for (i = 0; i < MAX_RANGES; i++)
+      if (ranges[i].start <= pc && pc < ranges[i].end)
+        break;
+    assert(i != MAX_RANGES);
+    tb->max_pc = ranges[i].end;
+
+    // From cpu_gen_code
+    tcg_func_start(s);
+
+    gen_intermediate_code(env, tb);
+
+   // tcg_dump_ops(s);
+    instructions1 = dump_tinycode(s);
+    *instructions = instructions1;
+
+#ifdef TARGET_X86_64
+    /* Force 64-bit decoding */
+    flag = 2;
+#endif
+    if(!target_disas_max2(stderr, cpu, /* GUEST_BASE + */ tb->pc, tb->size, flag, -1)){
+        /* generate machine code */
+        gen_code_buf = tb->tc_ptr;
+        tb->tb_next_offset[0] = 0xffff;
+        tb->tb_next_offset[1] = 0xffff;
+        s->tb_next_offset = tb->tb_next_offset;
+    
+    #ifdef USE_DIRECT_JUMP
+        s->tb_jmp_offset = tb->tb_jmp_offset;
+        s->tb_next = NULL;
+    #else
+        s->tb_jmp_offset = NULL;
+        s->tb_next = tb->tb_next;
+    #endif
+    
+    //#ifdef CONFIG_PROFILER
+    //    s->tb_count++;
+    //    s->interm_time += profile_getclock() - ti;
+    //    s->code_time -= profile_getclock();
+    //#endif
+        gen_code_size = tcg_gen_code(s, gen_code_buf);
+    //#ifdef CONFIG_PROFILER
+    //    s->code_time += profile_getclock();
+    //    s->code_in_len += tb->size;
+    //    s->code_out_len += gen_code_size;
+    //#endif
+    //
+    #ifdef DEBUG_DISAS
+        if (qemu_loglevel_mask(CPU_LOG_TB_OUT_ASM)) 
+      {
+          qemu_log("OUT: [size=%d]\n", gen_code_size);
+          log_disas(tb->tc_ptr, gen_code_size);
+          qemu_log("\n");
+          qemu_log_flush();
+      }
+    #endif
+        tcg_ctx.code_gen_ptr = (void *)(((uintptr_t)tcg_ctx.code_gen_ptr + 
+                gen_code_size + CODE_GEN_ALIGN - 1) & ~(CODE_GEN_ALIGN - 1));
+        /* end generate */
+    
+        /* check next page if needed */
+        virt_page2 = (pc + tb->size - 1) & TARGET_PAGE_MASK;
+        phys_page2 = -1;
+        if ((pc & TARGET_PAGE_MASK) != virt_page2) 
+        {
+            phys_page2 = get_page_addr_code(env, virt_page2);
+        }
+    }else
+      tb->isIllegal = 1;
+ 
+    tb_link_page(tb, phys_pc, phys_page2);
+
+    return tb;
+}
+
 static TranslationBlock *tb_gen_code2(TCGContext *s, CPUState *cpu,
                                      target_ulong pc, target_ulong cs_base,
                                      int flags, int cflags,
@@ -963,7 +1084,6 @@ int64_t ptc_exec(uint64_t virtual_address){
     TCGContext *s = &tcg_ctx;
     TranslationBlock *tb = NULL;
     block_size = 0;
-    int flag = 0;
 
     uint8_t *tc_ptr;
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
@@ -984,14 +1104,10 @@ int64_t ptc_exec(uint64_t virtual_address){
 
     tb = cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)];
     if(unlikely(!tb || tb->pc!= virtual_address)){
-        tb = tb_gen_code2(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions);
+        tb = tb_gen_code3(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions);
         cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
     }
-#ifdef TARGET_X86_64
-    /* Force 64-bit decoding */
-    flag = 2;
-#endif
-    if(target_disas_max2(stderr, cpu, /* GUEST_BASE + */ tb->pc, tb->size, flag, -1))
+    if(tb->isIllegal)
       return -1; 
 
     block_size = tb->size;
