@@ -989,9 +989,9 @@ int64_t ptc_exec(uint64_t virtual_address){
     }
 #ifdef TARGET_X86_64
     /* Force 64-bit decoding */
-    flags = 2;
+    flag = 2;
 #endif
-    if(target_disas_max2(stderr, cpu, /* GUEST_BASE + */ tb->pc, tb->size, flags, -1))
+    if(target_disas_max2(stderr, cpu, /* GUEST_BASE + */ tb->pc, tb->size, flag, -1))
       return -1; 
 
     block_size = tb->size;
