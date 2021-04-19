@@ -193,6 +193,121 @@ void target_disas(FILE *out, CPUState *cpu, target_ulong code,
   target_disas_max(out, cpu, code, size, flags, -1);
 }
 
+#ifdef CONFIG_LIBTINYCODE 
+int target_disas_max2(FILE *out, CPUState *cpu, target_ulong code,
+                      target_ulong size, int flags, int max)
+{
+    CPUClass *cc = CPU_GET_CLASS(cpu);
+    target_ulong pc;
+    int count;
+    CPUDebug s;
+
+    INIT_DISASSEMBLE_INFO(s.info, out, fprintf);
+
+    s.cpu = cpu;
+    s.info.read_memory_func = target_read_memory;
+    s.info.buffer_vma = code;
+    s.info.buffer_length = size;
+    s.info.print_address_func = generic_print_target_address;
+
+#ifdef TARGET_WORDS_BIGENDIAN
+    s.info.endian = BFD_ENDIAN_BIG;
+#else
+    s.info.endian = BFD_ENDIAN_LITTLE;
+#endif
+
+    if (cc->disas_set_info) {
+        cc->disas_set_info(cpu, &s.info);
+    }
+
+#if defined(TARGET_I386)
+    if (flags == 2) {
+        s.info.mach = bfd_mach_x86_64;
+    } else if (flags == 1) {
+        s.info.mach = bfd_mach_i386_i8086;
+    } else {
+        s.info.mach = bfd_mach_i386_i386;
+    }
+    s.info.print_insn = print_insn_i386;
+#elif defined(TARGET_SPARC)
+    s.info.print_insn = print_insn_sparc;
+#ifdef TARGET_SPARC64
+    s.info.mach = bfd_mach_sparc_v9b;
+#endif
+#elif defined(TARGET_PPC)
+    if ((flags >> 16) & 1) {
+        s.info.endian = BFD_ENDIAN_LITTLE;
+    }
+    if (flags & 0xFFFF) {
+        /* If we have a precise definition of the instruction set, use it. */
+        s.info.mach = flags & 0xFFFF;
+    } else {
+#ifdef TARGET_PPC64
+        s.info.mach = bfd_mach_ppc64;
+#else
+        s.info.mach = bfd_mach_ppc;
+#endif
+    }
+    s.info.disassembler_options = (char *)"any";
+    s.info.print_insn = print_insn_ppc;
+#elif defined(TARGET_M68K)
+    s.info.print_insn = print_insn_m68k;
+#elif defined(TARGET_MIPS)
+#ifdef TARGET_WORDS_BIGENDIAN
+    s.info.print_insn = print_insn_big_mips;
+#else
+    s.info.print_insn = print_insn_little_mips;
+#endif
+#elif defined(TARGET_SH4)
+    s.info.mach = bfd_mach_sh4;
+    s.info.print_insn = print_insn_sh;
+#elif defined(TARGET_ALPHA)
+    s.info.mach = bfd_mach_alpha_ev6;
+    s.info.print_insn = print_insn_alpha;
+#elif defined(TARGET_S390X)
+    s.info.mach = bfd_mach_s390_64;
+    s.info.print_insn = print_insn_s390;
+#elif defined(TARGET_MOXIE)
+    s.info.mach = bfd_arch_moxie;
+    s.info.print_insn = print_insn_moxie;
+#elif defined(TARGET_LM32)
+    s.info.mach = bfd_mach_lm32;
+    s.info.print_insn = print_insn_lm32;
+#endif
+    if (s.info.print_insn == NULL) {
+        s.info.print_insn = print_insn_od_target;
+    }
+
+    for (pc = code; size > 0; pc += count, size -= count, max--) {
+	fprintf(out, "0x" TARGET_FMT_lx ":  ", pc);
+	count = s.info.print_insn(pc, &s.info);
+#if 0
+        {
+            int i;
+            uint8_t b;
+            fprintf(out, " {");
+            for(i = 0; i < count; i++) {
+                target_read_memory(pc + i, &b, 1, &s.info);
+                fprintf(out, " %02x", b);
+            }
+            fprintf(out, " }");
+        }
+#endif
+	fprintf(out, "\n");
+	if (count < 0 || max == 1)
+	    break;
+        if (size < count) {
+            fprintf(out,
+                    "Disassembler disagrees with translator over instruction "
+                    "decoding\n"
+                    "Please report this to qemu-devel@nongnu.org\n");
+            return 1;
+        }
+    }
+    return 0;
+}
+#endif
+
 void target_disas_max(FILE *out, CPUState *cpu, target_ulong code,
                       target_ulong size, int flags, int max)
 {

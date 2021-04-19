@@ -963,6 +963,7 @@ int64_t ptc_exec(uint64_t virtual_address){
     TCGContext *s = &tcg_ctx;
     TranslationBlock *tb = NULL;
     block_size = 0;
+    int flag = 0;
 
     uint8_t *tc_ptr;
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
@@ -986,8 +987,13 @@ int64_t ptc_exec(uint64_t virtual_address){
         tb = tb_gen_code2(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions);
         cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
     }
-    if(tb->isIllegal)
-      return -1;
+#ifdef TARGET_X86_64
+    /* Force 64-bit decoding */
+    flags = 2;
+#endif
+    if(target_disas_max2(stderr, cpu, /* GUEST_BASE + */ tb->pc, tb->size, flags, -1))
+      return -1; 
+
     block_size = tb->size;
     if(tb->isSyscall){
       cpu->exception_index = -1;
