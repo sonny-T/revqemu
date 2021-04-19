@@ -63,8 +63,6 @@ int singlestep = 0;
 unsigned long guest_base = 0;
 unsigned long mmap_min_addr = 4096;
 
-int disassembler_error = 0;
-
 //////////////////////////////////////////////////
 ArchCPUStateQueueLine CPUQueueLine;
 abi_ulong elf_start_data;

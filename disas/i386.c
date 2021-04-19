@@ -154,6 +154,7 @@
 #include "qemu-common.h"
 
 #include <setjmp.h>
+int disassembler_error = 0;
 
 static int fetch_data2(struct disassemble_info *, bfd_byte *);
 static int fetch_data(struct disassemble_info *, bfd_byte *);
