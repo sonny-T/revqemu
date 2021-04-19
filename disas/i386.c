@@ -3865,7 +3865,14 @@ print_insn (bfd_vma pc, disassemble_info *info)
 	 by other prefixes.  Print the first prefix.  */
       name = prefix_name (priv.the_buffer[0], priv.orig_sizeflag);
       if (name == NULL)
+#ifdef CONFIG_LIBTINYCODE
+      {
+        disassembler_error = 1;
+#endif
 	name = INTERNAL_DISASSEMBLER_ERROR;
+#ifdef CONFIG_LIBTINYCODE
+      }
+#endif
       (*info->fprintf_func) (info->stream, "%s", name);
       return 1;
     }
@@ -4030,6 +4037,9 @@ print_insn (bfd_vma pc, disassemble_info *info)
 	      break;
 
 	    default:
+#ifdef CONFIG_LIBTINYCODE
+              disassembler_error = 1;
+#endif
 	      oappend (INTERNAL_DISASSEMBLER_ERROR);
 	      break;
 	    }
@@ -4057,7 +4067,14 @@ print_insn (bfd_vma pc, disassemble_info *info)
 
       name = prefix_name (priv.the_buffer[0], priv.orig_sizeflag);
       if (name == NULL)
+#ifdef CONFIG_LIBTINYCODE
+      { 
+        disassembler_error = 1;
+#endif
 	name = INTERNAL_DISASSEMBLER_ERROR;
+#ifdef CONFIG_LIBTINYCODE
+      }
+#endif
       (*info->fprintf_func) (info->stream, "%s", name);
       return 1;
     }
@@ -4066,7 +4083,14 @@ print_insn (bfd_vma pc, disassemble_info *info)
       const char *name;
       name = prefix_name (rex | 0x40, priv.orig_sizeflag);
       if (name == NULL)
+#ifdef CONFIG_LIBTINYCODE
+      {
+        disassembler_error = 1;
+#endif
 	name = INTERNAL_DISASSEMBLER_ERROR;
+#ifdef CONFIG_LIBTINYCODE
+      }
+#endif
       (*info->fprintf_func) (info->stream, "%s ", name);
     }
 
@@ -5120,6 +5144,9 @@ OP_E (int bytemode, int sizeflag)
 	case 0:
 	  break;
 	default:
+#ifdef CONFIG_LIBTINYCODE
+          disassembler_error = 1;
+#endif
 	  oappend (INTERNAL_DISASSEMBLER_ERROR);
 	  break;
 	}
@@ -5393,6 +5420,9 @@ OP_G (int bytemode, int sizeflag)
 	oappend (names32[modrm.reg + add]);
       break;
     default:
+#ifdef CONFIG_LIBTINYCODE
+      disassembler_error = 1;
+#endif
       oappend (INTERNAL_DISASSEMBLER_ERROR);
       break;
     }
@@ -5539,6 +5569,9 @@ OP_REG (int code, int sizeflag)
       used_prefixes |= (prefixes & PREFIX_DATA);
       break;
     default:
+#ifdef CONFIG_LIBTINYCODE
+      disassembler_error = 1;
+#endif
       s = INTERNAL_DISASSEMBLER_ERROR;
       break;
     }
@@ -5594,6 +5627,9 @@ OP_IMREG (int code, int sizeflag)
 	used_prefixes |= (prefixes & PREFIX_DATA);
       break;
     default:
+#ifdef CONFIG_LIBTINYCODE
+      disassembler_error = 1;
+#endif
       s = INTERNAL_DISASSEMBLER_ERROR;
       break;
     }
@@ -5645,6 +5681,9 @@ OP_I (int bytemode, int sizeflag)
         oappend ("1");
       return;
     default:
+#ifdef CONFIG_LIBTINYCODE
+      disassembler_error = 1;
+#endif
       oappend (INTERNAL_DISASSEMBLER_ERROR);
       return;
     }
@@ -5696,6 +5735,9 @@ OP_I64 (int bytemode, int sizeflag)
       op = get16 ();
       break;
     default:
+#ifdef CONFIG_LIBTINYCODE
+      disassembler_error = 1;
+#endif
       oappend (INTERNAL_DISASSEMBLER_ERROR);
       return;
     }
@@ -5742,6 +5784,9 @@ OP_sI (int bytemode, int sizeflag)
 	op -= 0x10000;
       break;
     default:
+#ifdef CONFIG_LIBTINYCODE
+      disassembler_error = 1;
+#endif
       oappend (INTERNAL_DISASSEMBLER_ERROR);
       return;
     }
@@ -5786,6 +5831,9 @@ OP_J (int bytemode, int sizeflag)
       used_prefixes |= (prefixes & PREFIX_DATA);
       break;
     default:
+#ifdef CONFIG_LIBTINYCODE
+      disassembler_error = 1;
+#endif
       oappend (INTERNAL_DISASSEMBLER_ERROR);
       return;
     }
@@ -6706,6 +6754,9 @@ CRC32_Fixup (int bytemode, int sizeflag)
       used_prefixes |= (prefixes & PREFIX_DATA);
       break;
     default:
+#ifdef CONFIG_LIBTINYCODE
+      disassembler_error = 1;
+#endif
       oappend (INTERNAL_DISASSEMBLER_ERROR);
       break;
     }

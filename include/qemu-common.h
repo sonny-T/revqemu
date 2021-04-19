@@ -599,4 +599,7 @@ int parse_debug_env(const char *name, int max, int initial);
 
 const char *qemu_ether_ntoa(const MACAddr *mac);
 
+#ifdef CONFIG_LIBTINYCODE
+extern int disassembler_error;
+#endif
 #endif
