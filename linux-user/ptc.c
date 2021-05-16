@@ -63,11 +63,17 @@ int singlestep = 0;
 unsigned long guest_base = 0;
 unsigned long mmap_min_addr = 4096;
 
+static void ptc_do_syscall_library(void);
+
 //////////////////////////////////////////////////
 ArchCPUStateQueueLine CPUQueueLine;
 abi_ulong elf_start_data;
 abi_ulong elf_end_data;
 abi_ulong elf_start_stack;
+
+#define TARGET_ELF_EXEC_PAGESIZE TARGET_PAGE_SIZE
+#define TARGET_ELF_PAGESTART(_v) ((_v) & \
+                                 ~(abi_ulong)(TARGET_ELF_EXEC_PAGESIZE-1))
 
 struct sigaction act, oact;
 uint64_t illegal_AccessAddr = 0;
@@ -224,7 +230,6 @@ uint64_t cfi_addr = 0;
 uint64_t is_syscall = 0;
 uint64_t block_size = 0;
 
-static unsigned long cs_base = 0;
 static CPUState *cpu = NULL;
 
 uint64_t CodeStartAddress = 0;
@@ -243,13 +248,13 @@ void *current_code = NULL;
 # define CPU_STRUCT S390CPU
 #endif
 
-typedef struct {
-  target_ulong start;
-  target_ulong end;
-} AddressRange;
-
-#define MAX_RANGES 10
-static AddressRange ranges[MAX_RANGES];
+//typedef struct {
+//  target_ulong start;
+//  target_ulong end;
+//} AddressRange;
+//
+//#define MAX_RANGES 10
+//static AddressRange ranges[MAX_RANGES];
 
 static CPU_STRUCT initialized_state;
 
@@ -287,6 +292,8 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.mmap = &ptc_mmap;
   result.translate = &ptc_translate;
   result.exec = &ptc_exec;
+  result.run_library = &ptc_run_library;
+  result.data_start = &ptc_data_start;
   result.disassemble = &ptc_disassemble;
   result.do_syscall2 = &ptc_do_syscall2;
   result.storeCPUState = &ptc_storeCPUState;
@@ -679,7 +686,6 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
     TranslationBlock *tb;
     tb_page_addr_t phys_pc,phys_page2;
     target_ulong virt_page2;
-    int i = 0;
     int flag = 0;
 
     tcg_insn_unit *gen_code_buf;
@@ -717,11 +723,11 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
     tb->isIllegal = 0;
     tb->size = 0;
 
-    for (i = 0; i < MAX_RANGES; i++)
-      if (ranges[i].start <= pc && pc < ranges[i].end)
-        break;
-    assert(i != MAX_RANGES);
-    tb->max_pc = ranges[i].end;
+//    for (i = 0; i < MAX_RANGES; i++)
+//      if (ranges[i].start <= pc && pc < ranges[i].end)
+//        break;
+//    assert(i != MAX_RANGES);
+    tb->max_pc = elf_start_data;
 
     // From cpu_gen_code
     tcg_func_start(s);
@@ -800,7 +806,6 @@ static TranslationBlock *tb_gen_code2(TCGContext *s, CPUState *cpu,
     TranslationBlock *tb;
     tb_page_addr_t phys_pc,phys_page2;
     target_ulong virt_page2;
-    int i = 0;
 
     tcg_insn_unit *gen_code_buf;
     int gen_code_size;
@@ -837,11 +842,11 @@ static TranslationBlock *tb_gen_code2(TCGContext *s, CPUState *cpu,
     tb->isIllegal = 0;
     tb->size = 0;
 
-    for (i = 0; i < MAX_RANGES; i++)
-      if (ranges[i].start <= pc && pc < ranges[i].end)
-        break;
-    assert(i != MAX_RANGES);
-    tb->max_pc = ranges[i].end;
+//    for (i = 0; i < MAX_RANGES; i++)
+//      if (ranges[i].start <= pc && pc < ranges[i].end)
+//        break;
+//    assert(i != MAX_RANGES);
+    tb->max_pc = elf_start_data;
 
     // From cpu_gen_code
     tcg_func_start(s);
@@ -905,7 +910,6 @@ static TranslationBlock *tb_gen_code2(TCGContext *s, CPUState *cpu,
 
 void ptc_mmap(uint64_t virtual_address, const void *code, size_t code_size) {
   abi_long mmapd_address;
-  unsigned i;
 
   mmapd_address = target_mmap((abi_ulong) virtual_address,
                               (abi_ulong) code_size ,
@@ -925,14 +929,14 @@ void ptc_mmap(uint64_t virtual_address, const void *code, size_t code_size) {
   CodeStartAddress = virtual_address;
   CodeSize = code_size;
 
-  for (i = 0; i < MAX_RANGES; i++) {
-    if (ranges[i].start == ranges[i].end
-        && ranges[i].end == 0) {
-      ranges[i].start = virtual_address;
-      ranges[i].end = virtual_address + code_size;
-      return;
-    }
-  }
+//  for (i = 0; i < MAX_RANGES; i++) {
+//    if (ranges[i].start == ranges[i].end
+//        && ranges[i].end == 0) {
+//      ranges[i].start = virtual_address;
+//      ranges[i].end = virtual_address + code_size;
+//      return;
+//    }
+//  }
 
   assert(false);
 }
@@ -1012,7 +1016,7 @@ static inline tcg_target_ulong cpu_tb_exec(CPUState *cpu, uint8_t *tb_ptr)
 size_t ptc_translate(uint64_t virtual_address, PTCInstructionList *instructions, uint64_t *dymvirtual_address) {
     TCGContext *s = &tcg_ctx;
     TranslationBlock *tb = NULL;
-
+    target_ulong cs_base = 0;
     uint8_t *tc_ptr;
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
     cpu->exception_index = -1;
@@ -1084,7 +1088,7 @@ int64_t ptc_exec(uint64_t virtual_address){
     TCGContext *s = &tcg_ctx;
     TranslationBlock *tb = NULL;
     block_size = 0;
-
+    target_ulong cs_base = 0;
     uint8_t *tc_ptr;
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
     PTCInstructionList instructions1;
@@ -1124,6 +1128,46 @@ int64_t ptc_exec(uint64_t virtual_address){
       return -1;
     
     return env->eip;
+}
+
+uint64_t ptc_run_library(void){
+    TranslationBlock *tb = NULL;
+    CPUArchState *env = (CPUArchState *)cpu->env_ptr;
+
+    target_ulong pc;
+    target_ulong cs_base;
+    int flags = 0;
+    uint8_t *tc_ptr; 
+    while(env->eip > info->end_data){
+        cpu_get_tb_cpu_state(cpu->env_ptr, &pc, &cs_base, &flags);
+
+#if defined(TARGET_S390X)
+        flags |= FLAG_MASK_32 | FLAG_MASK_64;
+#endif
+        tb = cpu->tb_jmp_cache[tb_jmp_cache_hash_func(pc)];
+        if(unlikely(!tb || tb->pc!= pc)){
+            tb = tb_gen_code(cpu, pc, cs_base, flags, 0);
+            cpu->tb_jmp_cache[tb_jmp_cache_hash_func(pc)] = tb;
+        }
+ 
+        if(sigsetjmp(cpu->jmp_env,1)==0){ 
+            tc_ptr = tb->tc_ptr;
+            cpu_tb_exec(cpu, tc_ptr);
+        }else{
+            fprintf(stderr,"loader/library failed to run\n");
+            exit(1);
+        }
+        if(cpu->exception_index == 0x100)
+          ptc_do_syscall_library(); 
+    }
+    return env->eip;
+}
+
+void ptc_data_start(uint64_t start, uint64_t entry){
+    CPUArchState *env = (CPUArchState *)cpu->env_ptr;
+    if(env->eip != entry){
+       elf_start_data = start; 
+    }
 }
 
 uint32_t ptc_deletCPULINEState(void){
@@ -1219,7 +1263,7 @@ void ptc_getBranchCPUeip(void){
 }
 
 uint32_t ptc_is_stack_addr(uint64_t va){
-  if(va<=info->start_stack && va>0x4000700000)
+  if(va<=info->start_stack && va>(info->start_stack&0xf00000))
       return 1;
 
   fprintf(stderr,"Unknow address access: %lx\n",va);
@@ -1242,8 +1286,8 @@ uint32_t ptc_is_image_addr(uint64_t va){
     fprintf(stderr,"heap malloc %lx\n",brk_page);
     return 1;
   }
- 
-  if(va<=info->start_stack && va>0x4000700000)
+                                         
+  if(va<=info->start_stack && va>(info->start_stack&0xf00000))
       return 1;
 
   fprintf(stderr,"Unknow address access: %lx\n",va);
@@ -1262,7 +1306,7 @@ uint32_t ptc_isValidExecuteAddr(uint64_t va){
 unsigned long ptc_do_syscall2(void){
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
 
-    if(env->regs[R_EAX]==231 ||
+    if(env->regs[R_EAX]==231||
        env->regs[R_EAX]==60){
       env->eip = env->exception_next_eip;
       cpu->exception_index = -1;
@@ -1273,7 +1317,7 @@ unsigned long ptc_do_syscall2(void){
     if(env->regs[R_EAX]==3){
         env->eip = env->exception_next_eip;
         cpu->exception_index = -1; 
-        fprintf(stderr,"mask syscall\n");
+        fprintf(stderr,"close syscall\n");
         return env->eip; 
     }
  
@@ -1298,6 +1342,44 @@ unsigned long ptc_do_syscall2(void){
     return env->eip; 
 }
 
+static void ptc_do_syscall_library(void){
+    CPUArchState *env = (CPUArchState *)cpu->env_ptr;
+    if(env->regs[R_EAX]==231||
+      env->regs[R_EAX]==60){
+      env->eip = 0;
+      cpu->exception_index = -1;
+      fprintf(stderr,"exit syscall\n");
+      return;
+    }
+//    if(env->regs[R_EAX]==10){
+//        env->eip = env->exception_next_eip;
+//        cpu->exception_index = -1; 
+//        fprintf(stderr,"mprotect syscall\n");
+//    }
+    if(env->regs[R_EAX]==3){
+        env->eip = env->exception_next_eip;
+        cpu->exception_index = -1; 
+        fprintf(stderr,"close syscall\n");
+    }
+    env->regs[R_EAX] = do_syscall(env,
+				  env->regs[R_EAX],
+				  env->regs[R_EDI],
+				  env->regs[R_ESI],
+				  env->regs[R_EDX],
+				  env->regs[10],
+				  env->regs[8],
+				  env->regs[9],
+				  0,0);
+    env->eip = env->exception_next_eip;
+    cpu->exception_index = -1; 
+
+    // Deal with CPUX86State->df, I don't know why do this?   
+    CC_SRC = env->eflags & (CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C); 
+    env->df = 1 - (2 * ((env->eflags >> 10) & 1));
+    CC_OP = CC_OP_EFLAGS;
+    env->eflags &= ~(DF_MASK | CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);   
+
+}
 const char *ptc_get_condition_name(PTCCondition condition) {
   switch (condition) {
   case PTC_COND_NEVER: return "never";

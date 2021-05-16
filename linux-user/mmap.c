@@ -31,7 +31,6 @@
 #include "qemu.h"
 #include "qemu-common.h"
 #include "translate-all.h"
-
 //#define DEBUG_MMAP
 
 static pthread_mutex_t mmap_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -195,7 +194,8 @@ static int mmap_frag(abi_ulong real_start,
 }
 
 #if HOST_LONG_BITS == 64 && TARGET_ABI_BITS == 64
-# define TASK_UNMAPPED_BASE  (1ul << 38)
+//# define TASK_UNMAPPED_BASE  (1ul << 38)
+# define TASK_UNMAPPED_BASE  (5ul << 28)
 #elif defined(__CYGWIN__)
 /* Cygwin doesn't have a whole lot of address space.  */
 # define TASK_UNMAPPED_BASE  0x18000000

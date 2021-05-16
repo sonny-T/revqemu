@@ -247,6 +247,8 @@ EXPORTED(unsigned, ptc_get_arg_label_id, (PTCInstructionArg arg));
 EXPORTED(void, ptc_mmap, (uint64_t virtual_address, const void *code, size_t code_size));
 EXPORTED(size_t, ptc_translate, (uint64_t va, PTCInstructionList *instructions,uint64_t *dym));
 EXPORTED(int64_t, ptc_exec, (uint64_t va));
+EXPORTED(uint64_t, ptc_run_library, (void));
+EXPORTED(void, ptc_data_start, (uint64_t start, uint64_t entry));
 EXPORTED(unsigned long, ptc_do_syscall2, (void));
 EXPORTED(uint32_t, ptc_storeCPUState, (void));
 EXPORTED(void, ptc_getBranchCPUeip,(void));
@@ -268,6 +270,8 @@ typedef struct {
   ptc_mmap_ptr_t mmap;
   ptc_translate_ptr_t translate;
   ptc_exec_ptr_t exec;
+  ptc_run_library_ptr_t run_library;
+  ptc_data_start_ptr_t data_start;
   ptc_disassemble_ptr_t disassemble;
  
   ptc_do_syscall2_ptr_t do_syscall2;
