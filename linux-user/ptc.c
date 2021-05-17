@@ -64,6 +64,7 @@ unsigned long guest_base = 0;
 unsigned long mmap_min_addr = 4096;
 
 static void ptc_do_syscall_library(void);
+static void ptc_do_syscall_loader(void);
 
 //////////////////////////////////////////////////
 ArchCPUStateQueueLine CPUQueueLine;
@@ -1013,7 +1014,7 @@ static inline tcg_target_ulong cpu_tb_exec(CPUState *cpu, uint8_t *tb_ptr)
 }
 
 /* TODO: error management */
-size_t ptc_translate(uint64_t virtual_address, PTCInstructionList *instructions, uint64_t *dymvirtual_address) {
+size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList *instructions, uint64_t *dymvirtual_address){
     TCGContext *s = &tcg_ctx;
     TranslationBlock *tb = NULL;
     target_ulong cs_base = 0;
@@ -1032,7 +1033,7 @@ size_t ptc_translate(uint64_t virtual_address, PTCInstructionList *instructions,
     cfi_addr = 0;
     block_size = 0;
 
-    illegal_AccessAddr = 0;
+    //illegal_AccessAddr = 0;
 
     target_ulong temp;
     int flags = 0;
@@ -1041,9 +1042,17 @@ size_t ptc_translate(uint64_t virtual_address, PTCInstructionList *instructions,
 #if defined(TARGET_S390X)
     flags |= FLAG_MASK_32 | FLAG_MASK_64;
 #endif
-
-    tb = tb_gen_code2(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions);
-
+    
+    tb = cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)];
+    if(unlikely(!tb || tb->pc!= virtual_address) || force){
+        tb = tb_gen_code3(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions);
+        cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
+    }
+    
+    if(tb->isIllegal){
+      *dymvirtual_address = 0;
+      return (size_t) tb->size;
+    }
     if(tb->isIndirect)
       is_indirect = tb->isIndirect;
     if(tb->isCall){
@@ -1130,7 +1139,7 @@ int64_t ptc_exec(uint64_t virtual_address){
     return env->eip;
 }
 
-uint64_t ptc_run_library(void){
+uint64_t ptc_run_library(size_t flag){
     TranslationBlock *tb = NULL;
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
 
@@ -1157,8 +1166,12 @@ uint64_t ptc_run_library(void){
             fprintf(stderr,"loader/library failed to run\n");
             exit(1);
         }
-        if(cpu->exception_index == 0x100)
-          ptc_do_syscall_library(); 
+        if(cpu->exception_index == 0x100){
+          if(flag == 1)
+              ptc_do_syscall_loader(); 
+          if(flag == 2)
+              ptc_do_syscall_library(); 
+        }
     }
     return env->eip;
 }
@@ -1263,7 +1276,7 @@ void ptc_getBranchCPUeip(void){
 }
 
 uint32_t ptc_is_stack_addr(uint64_t va){
-  if(va<=info->start_stack && va>(info->start_stack&0xf00000))
+  if(va<=info->start_stack && va>(info->start_stack&0xfff00000))
       return 1;
 
   fprintf(stderr,"Unknow address access: %lx\n",va);
@@ -1287,7 +1300,7 @@ uint32_t ptc_is_image_addr(uint64_t va){
     return 1;
   }
                                          
-  if(va<=info->start_stack && va>(info->start_stack&0xf00000))
+  if(va<=info->start_stack && va>(info->start_stack&0xfff00000))
       return 1;
 
   fprintf(stderr,"Unknow address access: %lx\n",va);
@@ -1342,6 +1355,27 @@ unsigned long ptc_do_syscall2(void){
     return env->eip; 
 }
 
+static void ptc_do_syscall_loader(void){
+    CPUArchState *env = (CPUArchState *)cpu->env_ptr;
+    
+    env->regs[R_EAX] = do_syscall(env,
+				  env->regs[R_EAX],
+				  env->regs[R_EDI],
+				  env->regs[R_ESI],
+				  env->regs[R_EDX],
+				  env->regs[10],
+				  env->regs[8],
+				  env->regs[9],
+				  0,0);
+    env->eip = env->exception_next_eip;
+    cpu->exception_index = -1; 
+
+    // Deal with CPUX86State->df, I don't know why do this?   
+    CC_SRC = env->eflags & (CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C); 
+    env->df = 1 - (2 * ((env->eflags >> 10) & 1));
+    CC_OP = CC_OP_EFLAGS;
+    env->eflags &= ~(DF_MASK | CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);   
+}
 static void ptc_do_syscall_library(void){
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
     if(env->regs[R_EAX]==231||
@@ -1360,6 +1394,7 @@ static void ptc_do_syscall_library(void){
         env->eip = env->exception_next_eip;
         cpu->exception_index = -1; 
         fprintf(stderr,"close syscall\n");
+        return;
     }
     env->regs[R_EAX] = do_syscall(env,
 				  env->regs[R_EAX],
@@ -1380,6 +1415,8 @@ static void ptc_do_syscall_library(void){
     env->eflags &= ~(DF_MASK | CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);   
 
 }
+
+
 const char *ptc_get_condition_name(PTCCondition condition) {
   switch (condition) {
   case PTC_COND_NEVER: return "never";
