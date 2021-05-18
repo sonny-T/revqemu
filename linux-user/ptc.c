@@ -62,6 +62,7 @@ unsigned long reserved_va = 0;
 int singlestep = 0;
 unsigned long guest_base = 0;
 unsigned long mmap_min_addr = 4096;
+FILE *fp = NULL;
 
 static void ptc_do_syscall_library(void);
 static void ptc_do_syscall_loader(void);
@@ -527,7 +528,7 @@ void ptc_init(const char *filename, const char *exe_args){
     initialized_state = *(container_of(cpu->env_ptr, CPU_STRUCT, env)); 
    
     ptc_exception_syscall = &(cpu->exception_index);
-
+    fp = fopen("disassemble.log","w+");
   }
   
   if (ptc_opcode_defs == NULL) {
@@ -743,7 +744,7 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
     /* Force 64-bit decoding */
     flag = 2;
 #endif
-    if(!target_disas_max2(stderr, cpu, /* GUEST_BASE + */ tb->pc, tb->size, flag, -1)){
+    if(!target_disas_max2(fp, cpu, /* GUEST_BASE + */ tb->pc, tb->size, flag, -1)){
         /* generate machine code */
         gen_code_buf = tb->tc_ptr;
         tb->tb_next_offset[0] = 0xffff;
