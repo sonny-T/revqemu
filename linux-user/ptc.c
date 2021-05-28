@@ -231,6 +231,7 @@ uint64_t is_ret = 0;
 uint64_t cfi_addr = 0;
 uint64_t is_syscall = 0;
 uint64_t block_size = 0;
+uint64_t is_illegal = 0;
 
 static CPUState *cpu = NULL;
 
@@ -325,6 +326,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.CFIAddr = &cfi_addr;
   result.isSyscall = &is_syscall;
   result.BlockSize = &block_size;
+  result.isIllegal = &is_illegal;
 
   *output = result;
 
@@ -1033,6 +1035,7 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     callnext = 0;
     cfi_addr = 0;
     block_size = 0;
+    is_illegal = 0;
 
     //illegal_AccessAddr = 0;
 
@@ -1051,6 +1054,7 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     }
     
     if(tb->isIllegal){
+      is_illegal = tb->isIllegal; 
       *dymvirtual_address = 0;
       return (size_t) tb->size;
     }
