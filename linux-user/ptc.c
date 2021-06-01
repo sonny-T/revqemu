@@ -1103,6 +1103,8 @@ int64_t ptc_exec(uint64_t virtual_address){
     TranslationBlock *tb = NULL;
     block_size = 0;
     target_ulong cs_base = 0;
+    is_call = 0;
+    is_syscall = 0;
     uint8_t *tc_ptr;
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
     PTCInstructionList instructions1;
@@ -1133,6 +1135,10 @@ int64_t ptc_exec(uint64_t virtual_address){
       cpu->exception_index = -1;
       return -1;
     }
+    if(tb->isCall)
+      is_call = tb->isCall;
+    if(tb->isSyscall)
+      is_syscall = tb->isSyscall;
  
     if(sigsetjmp(cpu->jmp_env,1)==0){ 
       tc_ptr = tb->tc_ptr;
