@@ -1499,7 +1499,11 @@ void ptc_disassemble(FILE *output, uint32_t buffer, size_t buffer_size,
   /* Force 64-bit decoding */
   flags = 2;
 #endif
-  target_disas_max(output, cpu, /* GUEST_BASE + */ buffer, buffer_size, flags, max);
+  char C[2]=" ";
+  if(target_disas_max2(output, cpu, /* GUEST_BASE + */ buffer, buffer_size, flags, max)){
+    fseek(output,0,SEEK_SET);
+    fwrite(C,sizeof(C),1,output);
+  }
 }
 
 void initArchCPUStateQueueLine(void){
