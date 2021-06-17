@@ -4086,6 +4086,11 @@ print_insn (bfd_vma pc, disassemble_info *info)
     oappend (" ");
   oappend (" ");
   (*info->fprintf_func) (info->stream, "%s", obuf);
+  
+  char * first; 
+  first = strtok(obuf," ");
+  if(strcmp(first,"(bad)")==0)
+      disassembler_error = 1;
 
   /* The enter and bound instructions are printed with operands in the same
      order as the intel book; everything else is printed in reverse order.  */
