@@ -8123,9 +8123,11 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
            change to be happen */
         if (dc->tf || dc->singlestep_enabled ||
             (flags & HF_INHIBIT_IRQ_MASK)) {
+#ifndef CONFIG_LIBTINYCODE
             gen_jmp_im(pc_ptr - dc->cs_base);
             gen_eob(dc);
             break;
+#endif
         }
         /* Do not cross the boundary of the pages in icount mode,
            it can cause an exception. Do it only when boundary is
