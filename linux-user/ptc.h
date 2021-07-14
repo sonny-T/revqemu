@@ -245,6 +245,7 @@ EXPORTED(PTCLoadStoreArg, ptc_parse_load_store_arg, (PTCInstructionArg arg));
 EXPORTED(unsigned, ptc_get_arg_label_id, (PTCInstructionArg arg));
 // EXPORTED(size_t, ptc_translate, (long long va, const void *code, size_t code_size, PTCInstructionList *instructions));
 EXPORTED(void, ptc_mmap, (uint64_t virtual_address, size_t code_size));
+EXPORTED(void, ptc_cleanLowAddr, (uint64_t virtual_address, size_t code_size)); 
 EXPORTED(size_t, ptc_translate, (uint64_t va,uint32_t f, PTCInstructionList *instructions,uint64_t *dym));
 EXPORTED(int64_t, ptc_exec, (uint64_t va));
 EXPORTED(uint64_t, ptc_run_library, (size_t flag));
@@ -268,6 +269,7 @@ typedef struct {
   ptc_parse_load_store_arg_ptr_t parse_load_store_arg;
   ptc_get_arg_label_id_ptr_t get_arg_label_id;
   ptc_mmap_ptr_t mmap;
+  ptc_cleanLowAddr_ptr_t cleanLowAddr;
   ptc_translate_ptr_t translate;
   ptc_exec_ptr_t exec;
   ptc_run_library_ptr_t run_library;
