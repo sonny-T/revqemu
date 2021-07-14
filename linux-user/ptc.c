@@ -912,38 +912,51 @@ static TranslationBlock *tb_gen_code2(TCGContext *s, CPUState *cpu,
     return tb;
 }
 
-void ptc_mmap(uint64_t virtual_address, const void *code, size_t code_size) {
+void ptc_mmap(uint64_t virtual_address, size_t code_size) {
   abi_long mmapd_address;
 
   mmapd_address = target_mmap((abi_ulong) virtual_address,
-                              (abi_ulong) code_size ,
+                              (abi_ulong) code_size,
                               PROT_READ | PROT_WRITE | PROT_EXEC,
                               MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
                               -1,
                               0);
-  memcpy((void *) g2h(virtual_address), code, code_size);
 
   assert(mmapd_address == (abi_ulong) virtual_address);
 
-  if(mprotect((void *) virtual_address,
-	      (abi_ulong) code_size,
-	      PROT_READ | PROT_EXEC) == -1)
-    exit(-1);
-
-  CodeStartAddress = virtual_address;
-  CodeSize = code_size;
-
-//  for (i = 0; i < MAX_RANGES; i++) {
-//    if (ranges[i].start == ranges[i].end
-//        && ranges[i].end == 0) {
-//      ranges[i].start = virtual_address;
-//      ranges[i].end = virtual_address + code_size;
-//      return;
-//    }
-//  }
-
-  assert(false);
 }
+//void ptc_mmap(uint64_t virtual_address, const void *code, size_t code_size) {
+//  abi_long mmapd_address;
+//
+//  mmapd_address = target_mmap((abi_ulong) virtual_address,
+//                              (abi_ulong) code_size ,
+//                              PROT_READ | PROT_WRITE | PROT_EXEC,
+//                              MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
+//                              -1,
+//                              0);
+//  memcpy((void *) g2h(virtual_address), code, code_size);
+//
+//  assert(mmapd_address == (abi_ulong) virtual_address);
+//
+//  if(mprotect((void *) virtual_address,
+//	      (abi_ulong) code_size,
+//	      PROT_READ | PROT_EXEC) == -1)
+//    exit(-1);
+//
+//  CodeStartAddress = virtual_address;
+//  CodeSize = code_size;
+//
+////  for (i = 0; i < MAX_RANGES; i++) {
+////    if (ranges[i].start == ranges[i].end
+////        && ranges[i].end == 0) {
+////      ranges[i].start = virtual_address;
+////      ranges[i].end = virtual_address + code_size;
+////      return;
+////    }
+////  }
+//
+//  assert(false);
+//}
 
 void ptc_lockexec(void){
     if(mprotect((void *) CodeStartAddress,
