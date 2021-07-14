@@ -930,7 +930,10 @@ void ptc_mmap(uint64_t virtual_address, size_t code_size) {
 }
 
 void ptc_cleanLowAddr(uint64_t virtual_address, size_t code_size){
-  memset((void *)virtual_address, 0, code_size);
+  abi_long low = *((abi_long *)0);
+  abi_long middle = *((abi_long *)1024);
+  if(low>0 || middle >0) 
+    memset((void *)virtual_address, 0, code_size);
 }
 //void ptc_mmap(uint64_t virtual_address, const void *code, size_t code_size) {
 //  abi_long mmapd_address;
