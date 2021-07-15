@@ -8110,7 +8110,7 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
             tb->isSyscall = pc_ptr;
         //if(dc->is_illegal)
         //    tb->isIllegal = dc->is_illegal;
-        tb->CFIAddr = current_pc;
+        tb->CFIAddr = pc_start;
 #endif
 
         /* stop translation if indicated */
