@@ -293,6 +293,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.parse_load_store_arg = &ptc_parse_load_store_arg;
   result.get_arg_label_id = &ptc_get_arg_label_id;
   result.mmap = &ptc_mmap;
+  result.unmmap = &ptc_unmmap;
   result.cleanLowAddr = &ptc_cleanLowAddr;
   result.translate = &ptc_translate;
   result.exec = &ptc_exec;
@@ -923,10 +924,18 @@ void ptc_mmap(uint64_t virtual_address, size_t code_size) {
                               -1,
                               0);
 
-  memset((void *)virtual_address, 0, code_size);
+  //memset((void *)virtual_address, 0, code_size);
 
   assert(mmapd_address == (abi_ulong) virtual_address);
 
+}
+
+void ptc_unmmap(uint64_t virtual_address, size_t code_size) {
+  int ret = 0;
+  ret = munmap((void *) virtual_address,
+                code_size);
+
+  assert(ret == 0);
 }
 
 void ptc_cleanLowAddr(uint64_t virtual_address, size_t code_size){
