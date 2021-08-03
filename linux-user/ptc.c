@@ -297,6 +297,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.cleanLowAddr = &ptc_cleanLowAddr;
   result.translate = &ptc_translate;
   result.exec = &ptc_exec;
+  result.exec1 = &ptc_exec1;
   result.run_library = &ptc_run_library;
   result.data_start = &ptc_data_start;
   result.disassemble = &ptc_disassemble;
@@ -686,7 +687,7 @@ extern void tb_link_page(TranslationBlock *tb, tb_page_addr_t phys_pc,
 static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
                                      target_ulong pc, target_ulong cs_base,
                                      int flags, int cflags,
-                                     PTCInstructionList *instructions)
+                                     PTCInstructionList *instructions, target_ulong bound)
 {
     CPUArchState *env = cpu->env_ptr;
     TranslationBlock *tb;
@@ -728,6 +729,7 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
     tb->CFIAddr = 0;
     tb->isIllegal = 0;
     tb->size = 0;
+    tb->bound = bound;
 
 //    for (i = 0; i < MAX_RANGES; i++)
 //      if (ranges[i].start <= pc && pc < ranges[i].end)
@@ -1081,7 +1083,7 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     
     tb = cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)];
     if(unlikely(!tb || tb->pc!= virtual_address) || force){
-        tb = tb_gen_code3(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions);
+        tb = tb_gen_code3(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions,0);
         cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
     }
     
@@ -1156,7 +1158,7 @@ int64_t ptc_exec(uint64_t virtual_address){
 
     tb = cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)];
     if(unlikely(!tb || tb->pc!= virtual_address)){
-        tb = tb_gen_code3(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions);
+        tb = tb_gen_code3(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions,0);
         cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
     }
     if(tb->isIllegal)
@@ -1172,6 +1174,46 @@ int64_t ptc_exec(uint64_t virtual_address){
     if(tb->isSyscall)
       is_syscall = tb->isSyscall;
  
+    if(sigsetjmp(cpu->jmp_env,1)==0){ 
+      tc_ptr = tb->tc_ptr;
+      cpu_tb_exec(cpu, tc_ptr);
+    }
+    else
+      return -1;
+    
+    return env->eip;
+}
+
+int64_t ptc_exec1(uint64_t begin, uint64_t end){
+    TCGContext *s = &tcg_ctx;
+    TranslationBlock *tb = NULL;
+    block_size = 0;
+    target_ulong cs_base = 0;
+    uint8_t *tc_ptr;
+    CPUArchState *env = (CPUArchState *)cpu->env_ptr;
+    PTCInstructionList instructions1;
+    PTCInstructionList *instructions = &instructions1;
+
+    env->eip = begin;
+
+    target_ulong temp;
+    int flags = 0;
+    cpu_get_tb_cpu_state(cpu->env_ptr, &temp, &temp, &flags);
+
+#if defined(TARGET_S390X)
+    flags |= FLAG_MASK_32 | FLAG_MASK_64;
+#endif
+    tb = tb_gen_code3(s, cpu, (target_ulong) begin, cs_base, flags, 0,instructions,end);
+    
+    if(tb->isIllegal)
+      return -1; 
+
+    block_size = tb->size;
+    if(tb->isSyscall){
+      cpu->exception_index = -1;
+      return -1;
+    }
+  
     if(sigsetjmp(cpu->jmp_env,1)==0){ 
       tc_ptr = tb->tc_ptr;
       cpu_tb_exec(cpu, tc_ptr);
