@@ -216,6 +216,7 @@ struct TranslationBlock {
     target_ulong isSyscall;
     uint32_t isIllegal;
     target_ulong bound;
+    target_ulong isAdd;
 #endif
     
 };
