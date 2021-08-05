@@ -104,6 +104,7 @@ typedef struct DisasContext {
     int is_ret; /* 1 = means have ret */
     int is_syscall;
     //int is_illegal; // true means that there have illegal instructions in tb
+    target_ulong is_add;
 #endif 
 
     /* current block context */
@@ -4607,7 +4608,10 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
             int op, f, val;
             op = (b >> 3) & 7;
             f = (b >> 1) & 3;
-
+#ifdef CONFIG_LIBTINYCODE
+            if(op==OP_ADDL)
+              s->is_add = pc_start;
+#endif
             ot = mo_b_d(b, dflag);
 
             switch(f) {
@@ -4671,6 +4675,10 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
             mod = (modrm >> 6) & 3;
             rm = (modrm & 7) | REX_B(s);
             op = (modrm >> 3) & 7;
+#ifdef CONFIG_LIBTINYCODE
+            if(op==OP_ADDL)
+              s->is_add = pc_start;
+#endif
 
             if (mod != 3) {
                 if (b == 0x83)
@@ -8051,6 +8059,7 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
     dc->is_directjmp = 0;
     dc->is_ret = 0;
     dc->is_syscall = 0;
+    dc->is_add = 0;
     //dc->is_illegal = 0;
 #endif
 
@@ -8111,6 +8120,9 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
         //if(dc->is_illegal)
         //    tb->isIllegal = dc->is_illegal;
         tb->CFIAddr = pc_start;
+
+        if(dc->is_add)
+            tb->isAdd = dc->is_add;   
 
         if(tb->bound && (tb->bound==pc_ptr)){
           gen_jmp_im(pc_ptr - dc->cs_base);

@@ -318,6 +318,7 @@ typedef struct {
   uint64_t *isSyscall;
   uint64_t *BlockSize;
   uint64_t *isIllegal;
+  uint64_t *isAdd;
 
 } PTCInterface;
 

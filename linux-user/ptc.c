@@ -232,6 +232,7 @@ uint64_t cfi_addr = 0;
 uint64_t is_syscall = 0;
 uint64_t block_size = 0;
 uint64_t is_illegal = 0;
+uint64_t is_add = 0;
 
 static CPUState *cpu = NULL;
 
@@ -332,6 +333,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.isSyscall = &is_syscall;
   result.BlockSize = &block_size;
   result.isIllegal = &is_illegal;
+  result.isAdd = &is_add;
 
   *output = result;
 
@@ -732,6 +734,7 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
     tb->isIllegal = 0;
     tb->size = 0;
     tb->bound = bound;
+    tb->isAdd = 0;
 
 //    for (i = 0; i < MAX_RANGES; i++)
 //      if (ranges[i].start <= pc && pc < ranges[i].end)
@@ -1072,6 +1075,7 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     cfi_addr = 0;
     block_size = 0;
     is_illegal = 0;
+    is_add = 0;
 
     //illegal_AccessAddr = 0;
 
@@ -1109,6 +1113,10 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     if(tb->isRet)
       is_ret = tb->isRet;
     cfi_addr = tb->CFIAddr;
+    if(tb->isAdd){
+      is_add = tb->isAdd;
+      fprintf(stderr,"add-------------: %lx\n",is_add);
+    }
 
    // printf("virtual_address: %lx  tb ->pc: %lx\n",virtual_address,tb->pc);
 
