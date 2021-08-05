@@ -246,7 +246,7 @@ EXPORTED(unsigned, ptc_get_arg_label_id, (PTCInstructionArg arg));
 // EXPORTED(size_t, ptc_translate, (long long va, const void *code, size_t code_size, PTCInstructionList *instructions));
 EXPORTED(void, ptc_mmap, (uint64_t virtual_address, size_t code_size));
 EXPORTED(void, ptc_unmmap, (uint64_t virtual_address, size_t code_size));
-EXPORTED(void, ptc_cleanLowAddr, (uint64_t virtual_address, size_t code_size)); 
+EXPORTED(void, ptc_cleanLowAddr, (uint64_t virtual_address, size_t code_size));
 EXPORTED(size_t, ptc_translate, (uint64_t va,uint32_t f, PTCInstructionList *instructions,uint64_t *dym));
 EXPORTED(int64_t, ptc_exec, (uint64_t va));
 EXPORTED(int64_t, ptc_exec1, (uint64_t begin,uint64_t end));
@@ -257,6 +257,8 @@ EXPORTED(uint32_t, ptc_storeCPUState, (void));
 EXPORTED(void, ptc_getBranchCPUeip,(void));
 EXPORTED(uint32_t, ptc_deletCPULINEState,(void));
 EXPORTED(void,ptc_recoverStack,(void));
+EXPORTED(void,ptc_recoverOnlyStack,(void * storedStack, bool needFree));
+EXPORTED(void *,ptc_storeOnlyStack,(void));
 EXPORTED(void,ptc_storeStack,(void));
 EXPORTED(uint32_t,ptc_is_stack_addr,(uint64_t va));
 EXPORTED(uint32_t,ptc_is_image_addr,(uint64_t va));
@@ -279,13 +281,15 @@ typedef struct {
   ptc_run_library_ptr_t run_library;
   ptc_data_start_ptr_t data_start;
   ptc_disassemble_ptr_t disassemble;
- 
+
   ptc_do_syscall2_ptr_t do_syscall2;
   ptc_storeCPUState_ptr_t storeCPUState;
   ptc_getBranchCPUeip_ptr_t getBranchCPUeip;
   ptc_deletCPULINEState_ptr_t deletCPULINEState;
   ptc_recoverStack_ptr_t recoverStack;
+  ptc_recoverOnlyStack_ptr_t recoverOnlyStack;
   ptc_storeStack_ptr_t storeStack;
+  ptc_storeOnlyStack_ptr_t storeOnlyStack;
   ptc_is_stack_addr_ptr_t is_stack_addr;
   ptc_is_image_addr_ptr_t is_image_addr;
   ptc_isValidExecuteAddr_ptr_t isValidExecuteAddr;
@@ -302,8 +306,8 @@ typedef struct {
   int32_t *exception_syscall;
   uint64_t *syscall_next_eip;
   uint64_t *regs;
-  uint64_t *isIndirect; 
-  uint64_t *isCall; 
+  uint64_t *isIndirect;
+  uint64_t *isCall;
   uint64_t *CallNext;
   uint64_t *isIndirectJmp;
   uint64_t *isDirectJmp;

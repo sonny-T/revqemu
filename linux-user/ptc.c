@@ -99,7 +99,7 @@ void gemu_log(const char *fmt, ...)
 ///* Wait for pending exclusive operations to complete.  The exclusive lock
 //   must be held.  */
 //static inline void exclusive_idle(void)
-//{   
+//{
 //    while (pending_cpus) {
 //        pthread_cond_wait(&exclusive_resume, &exclusive_lock);
 //    }
@@ -156,7 +156,7 @@ void stop_all_tasks(void)
 void init_task_state(TaskState *ts)
 {
     int i;
- 
+
     ts->used = 1;
     ts->first_free = ts->sigqueue_table;
     for (i = 0; i < MAX_SIGQUEUE_SIZE - 1; i++) {
@@ -170,7 +170,7 @@ CPUArchState *cpu_copy(CPUArchState *env)
     CPUState *cpu = ENV_GET_CPU(env);
 #if defined(TARGET_X86_64)
     CPUState *new_cpu = cpu_init("qemu64");
-#endif 
+#endif
     CPUArchState *new_env = new_cpu->env_ptr;
     CPUBreakpoint *bp;
     CPUWatchpoint *wp;
@@ -261,7 +261,7 @@ void *current_code = NULL;
 
 static CPU_STRUCT initialized_state;
 
-int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename, 
+int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
 		const char *exe_args){
 
   PTCInterface result = { 0 };
@@ -306,7 +306,9 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.getBranchCPUeip = &ptc_getBranchCPUeip;
   result.deletCPULINEState = &ptc_deletCPULINEState;
   result.recoverStack = &ptc_recoverStack;
+  result.recoverOnlyStack = &ptc_recoverOnlyStack;
   result.storeStack = &ptc_storeStack;
+  result.storeOnlyStack = &ptc_storeOnlyStack;
   result.is_stack_addr = &ptc_is_stack_addr;
   result.is_image_addr = &ptc_is_image_addr;
   result.isValidExecuteAddr = &ptc_isValidExecuteAddr;
@@ -315,7 +317,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.helper_defs = ptc_helper_defs;
   result.helper_defs_size = ptc_helper_defs_size;
   result.initialized_env = (uint8_t *) &initialized_state.env;
-  
+
   result.exception_syscall = ptc_exception_syscall;
   result.syscall_next_eip = &ptc_syscall_next_eip;
   result.isIndirect = &is_indirect;
@@ -366,13 +368,13 @@ void ptc_init(const char *filename, const char *exe_args){
    envlist_t *envlist;
    struct target_pt_regs regs1, *regs = &regs1;
 
-   char *exeArgs = calloc(strlen(exe_args)+1, sizeof(char));  
+   char *exeArgs = calloc(strlen(exe_args)+1, sizeof(char));
    if (exeArgs == NULL) {
        (void) fprintf(stderr, "Unable to allocate memory for target_argv\n");
        exit(1);
    }
    strcpy(exeArgs, exe_args);
-   
+
    memset(regs,0,sizeof(struct target_pt_regs));
    /* Zero out image_info */
    memset(info, 0, sizeof(struct image_info));
@@ -436,7 +438,7 @@ void ptc_init(const char *filename, const char *exe_args){
     /*
      * Prepare copy of argv vector for target.
      */
-	    
+
     target_argc = 1;
     target_argv = calloc(target_argc, sizeof (char *));
     if (target_argv == NULL) {
@@ -451,7 +453,7 @@ void ptc_init(const char *filename, const char *exe_args){
     for(j=1; token != NULL; j++){
 	target_argv = realloc(target_argv, (j+2)*sizeof(char *));
 	if (target_argv == NULL){
-	    (void) fprintf(stderr, "Unable to allocate memory for target_argv\n"); 
+	    (void) fprintf(stderr, "Unable to allocate memory for target_argv\n");
 	    exit(1);
 	}
 	target_argv[j] =strdup(token);
@@ -462,7 +464,7 @@ void ptc_init(const char *filename, const char *exe_args){
      * If argv0 is specified (using '-0' switch) we replace
      * argv[0] pointer with the given one.
      */
-    /**** 
+    /****
     i = 0;
 
     if (argv0 != NULL) {
@@ -509,16 +511,16 @@ void ptc_init(const char *filename, const char *exe_args){
    elf_start_data = info->start_data;
    elf_end_data = info->end_data;
    /* Get Stack segment */
-   elf_start_stack = info->start_stack; 
+   elf_start_stack = info->start_stack;
 
    /* Set signal to do with SIGSEGV */
    act.sa_sigaction = sig_handle;
    sigemptyset(&act.sa_mask);
    act.sa_flags = SA_SIGINFO|SA_ONSTACK;
-  
+
    if(sigaction(SIGSEGV, &act, &oact)<0)
      exit(-1);
-    
+
    if(sigaction(SIGBUS, &act, &oact)<0)
      exit(-1);
 ////////////////////////////////
@@ -530,12 +532,12 @@ void ptc_init(const char *filename, const char *exe_args){
     /* set logging for tiny code dumping */
     qemu_set_log(CPU_LOG_TB_OP | CPU_LOG_TB_OP_OPT);
 
-    initialized_state = *(container_of(cpu->env_ptr, CPU_STRUCT, env)); 
-   
+    initialized_state = *(container_of(cpu->env_ptr, CPU_STRUCT, env));
+
     ptc_exception_syscall = &(cpu->exception_index);
     fp = fopen("disassemble.log","w+");
   }
-  
+
   if (ptc_opcode_defs == NULL) {
     ptc_opcode_defs = (PTCOpcodeDef *) calloc(sizeof(PTCOpcodeDef), tcg_op_defs_max);
 
@@ -756,7 +758,7 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
         tb->tb_next_offset[0] = 0xffff;
         tb->tb_next_offset[1] = 0xffff;
         s->tb_next_offset = tb->tb_next_offset;
-    
+
     #ifdef USE_DIRECT_JUMP
         s->tb_jmp_offset = tb->tb_jmp_offset;
         s->tb_next = NULL;
@@ -764,7 +766,7 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
         s->tb_jmp_offset = NULL;
         s->tb_next = tb->tb_next;
     #endif
-    
+
     //#ifdef CONFIG_PROFILER
     //    s->tb_count++;
     //    s->interm_time += profile_getclock() - ti;
@@ -778,7 +780,7 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
     //#endif
     //
     #ifdef DEBUG_DISAS
-        if (qemu_loglevel_mask(CPU_LOG_TB_OUT_ASM)) 
+        if (qemu_loglevel_mask(CPU_LOG_TB_OUT_ASM))
       {
           qemu_log("OUT: [size=%d]\n", gen_code_size);
           log_disas(tb->tc_ptr, gen_code_size);
@@ -786,20 +788,20 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
           qemu_log_flush();
       }
     #endif
-        tcg_ctx.code_gen_ptr = (void *)(((uintptr_t)tcg_ctx.code_gen_ptr + 
+        tcg_ctx.code_gen_ptr = (void *)(((uintptr_t)tcg_ctx.code_gen_ptr +
                 gen_code_size + CODE_GEN_ALIGN - 1) & ~(CODE_GEN_ALIGN - 1));
         /* end generate */
-    
+
         /* check next page if needed */
         virt_page2 = (pc + tb->size - 1) & TARGET_PAGE_MASK;
         phys_page2 = -1;
-        if ((pc & TARGET_PAGE_MASK) != virt_page2) 
+        if ((pc & TARGET_PAGE_MASK) != virt_page2)
         {
             phys_page2 = get_page_addr_code(env, virt_page2);
         }
     }else
       tb->isIllegal = 1;
-    
+
     tb_link_page(tb, phys_pc, phys_page2);
 
     return tb;
@@ -892,7 +894,7 @@ static TranslationBlock *tb_gen_code2(TCGContext *s, CPUState *cpu,
 //#endif
 //
 #ifdef DEBUG_DISAS
-    if (qemu_loglevel_mask(CPU_LOG_TB_OUT_ASM)) 
+    if (qemu_loglevel_mask(CPU_LOG_TB_OUT_ASM))
   {
       qemu_log("OUT: [size=%d]\n", gen_code_size);
       log_disas(tb->tc_ptr, gen_code_size);
@@ -900,17 +902,17 @@ static TranslationBlock *tb_gen_code2(TCGContext *s, CPUState *cpu,
       qemu_log_flush();
   }
 #endif
-    tcg_ctx.code_gen_ptr = (void *)(((uintptr_t)tcg_ctx.code_gen_ptr + 
+    tcg_ctx.code_gen_ptr = (void *)(((uintptr_t)tcg_ctx.code_gen_ptr +
             gen_code_size + CODE_GEN_ALIGN - 1) & ~(CODE_GEN_ALIGN - 1));
     /* end generate */
 
     /* check next page if needed */
     virt_page2 = (pc + tb->size - 1) & TARGET_PAGE_MASK;
     phys_page2 = -1;
-    if ((pc & TARGET_PAGE_MASK) != virt_page2) 
+    if ((pc & TARGET_PAGE_MASK) != virt_page2)
     {
         phys_page2 = get_page_addr_code(env, virt_page2);
-    } 
+    }
     tb_link_page(tb, phys_pc, phys_page2);
 
     return tb;
@@ -943,7 +945,7 @@ void ptc_unmmap(uint64_t virtual_address, size_t code_size) {
 void ptc_cleanLowAddr(uint64_t virtual_address, size_t code_size){
   abi_long low = *((abi_long *)0);
   abi_long middle = *((abi_long *)1024);
-  if(low>0 || middle >0) 
+  if(low>0 || middle >0)
     memset((void *)virtual_address, 0, code_size);
 }
 //void ptc_mmap(uint64_t virtual_address, const void *code, size_t code_size) {
@@ -1000,7 +1002,7 @@ static inline tcg_target_ulong cpu_tb_exec(CPUState *cpu, uint8_t *tb_ptr)
     uintptr_t next_tb;
 
 //#if defined(DEBUG_DISAS)
-//    if (qemu_loglevel_mask(CPU_LOG_TB_CPU)) 
+//    if (qemu_loglevel_mask(CPU_LOG_TB_CPU))
 //    {
 //#if defined(TARGET_I386)
 //        log_cpu_state(cpu, CPU_DUMP_CCOP);
@@ -1061,7 +1063,7 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     is_indirect = 0;
     is_call = 0;
     env->eip = virtual_address;
-    
+
     is_syscall = 0;
     is_indirectjmp = 0;
     is_directjmp = 0;
@@ -1080,15 +1082,15 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
 #if defined(TARGET_S390X)
     flags |= FLAG_MASK_32 | FLAG_MASK_64;
 #endif
-    
+
     tb = cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)];
     if(unlikely(!tb || tb->pc!= virtual_address) || force){
         tb = tb_gen_code3(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions,0);
         cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
     }
-    
+
     if(tb->isIllegal){
-      is_illegal = tb->isIllegal; 
+      is_illegal = tb->isIllegal;
       *dymvirtual_address = 0;
       return (size_t) tb->size;
     }
@@ -1107,17 +1109,17 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     if(tb->isRet)
       is_ret = tb->isRet;
     cfi_addr = tb->CFIAddr;
-    
+
    // printf("virtual_address: %lx  tb ->pc: %lx\n",virtual_address,tb->pc);
-  
+
     if(sigsetjmp(cpu->jmp_env,1)==0){
-//      ptc_lockexec(); 
+//      ptc_lockexec();
       tc_ptr = tb->tc_ptr;
       cpu_tb_exec(cpu, tc_ptr);
 //      ptc_unlockexec();
     }
     else{
-      //ptc_unlockexec(); 
+      //ptc_unlockexec();
       printf("explore branch:  %lx\n",virtual_address);
       cpu->exception_index = 11;
       *dymvirtual_address = virtual_address;
@@ -1162,7 +1164,7 @@ int64_t ptc_exec(uint64_t virtual_address){
         cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
     }
     if(tb->isIllegal)
-      return -1; 
+      return -1;
 
     block_size = tb->size;
     if(tb->isSyscall){
@@ -1173,14 +1175,14 @@ int64_t ptc_exec(uint64_t virtual_address){
       is_call = tb->isCall;
     if(tb->isSyscall)
       is_syscall = tb->isSyscall;
- 
-    if(sigsetjmp(cpu->jmp_env,1)==0){ 
+
+    if(sigsetjmp(cpu->jmp_env,1)==0){
       tc_ptr = tb->tc_ptr;
       cpu_tb_exec(cpu, tc_ptr);
     }
     else
       return -1;
-    
+
     return env->eip;
 }
 
@@ -1204,23 +1206,23 @@ int64_t ptc_exec1(uint64_t begin, uint64_t end){
     flags |= FLAG_MASK_32 | FLAG_MASK_64;
 #endif
     tb = tb_gen_code3(s, cpu, (target_ulong) begin, cs_base, flags, 0,instructions,end);
-    
+
     if(tb->isIllegal)
-      return -1; 
+      return -1;
 
     block_size = tb->size;
     if(tb->isSyscall){
       cpu->exception_index = -1;
       return -1;
     }
-  
-    if(sigsetjmp(cpu->jmp_env,1)==0){ 
+
+    if(sigsetjmp(cpu->jmp_env,1)==0){
       tc_ptr = tb->tc_ptr;
       cpu_tb_exec(cpu, tc_ptr);
     }
     else
       return -1;
-    
+
     return env->eip;
 }
 
@@ -1231,7 +1233,7 @@ uint64_t ptc_run_library(size_t flag){
     target_ulong pc;
     target_ulong cs_base;
     int flags = 0;
-    uint8_t *tc_ptr; 
+    uint8_t *tc_ptr;
     while(env->eip > info->end_data){
         cpu_get_tb_cpu_state(cpu->env_ptr, &pc, &cs_base, &flags);
 
@@ -1243,8 +1245,8 @@ uint64_t ptc_run_library(size_t flag){
             tb = tb_gen_code(cpu, pc, cs_base, flags, 0);
             cpu->tb_jmp_cache[tb_jmp_cache_hash_func(pc)] = tb;
         }
- 
-        if(sigsetjmp(cpu->jmp_env,1)==0){ 
+
+        if(sigsetjmp(cpu->jmp_env,1)==0){
             tc_ptr = tb->tc_ptr;
             cpu_tb_exec(cpu, tc_ptr);
         }else{
@@ -1253,9 +1255,9 @@ uint64_t ptc_run_library(size_t flag){
         }
         if(cpu->exception_index == 0x100){
           if(flag == 1)
-              ptc_do_syscall_loader(); 
+              ptc_do_syscall_loader();
           if(flag == 2)
-              ptc_do_syscall_library(); 
+              ptc_do_syscall_library();
         }
     }
     return env->eip;
@@ -1264,7 +1266,7 @@ uint64_t ptc_run_library(size_t flag){
 void ptc_data_start(uint64_t start, uint64_t entry){
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
     if(env->eip != entry){
-       elf_start_data = start; 
+       elf_start_data = start;
     }
 }
 
@@ -1276,7 +1278,7 @@ uint32_t ptc_deletCPULINEState(void){
   fprintf(stderr,"load......... CPU %lx\n",env->eip);
   fprintf(stderr,"load......... rax %lx\n",env->regs[0]);
   fprintf(stderr,"load......... rsp %lx\n",env->regs[4]);
-  
+
   /* Load ELF data segments */
   memcpy((void *)elf_start_data,datatmp.elf_data,elf_end_data - elf_start_data);
   free(datatmp.elf_data);
@@ -1290,11 +1292,11 @@ uint32_t ptc_deletCPULINEState(void){
 uint32_t ptc_storeCPUState(void) {
   CPUArchState *env = (CPUArchState *)cpu->env_ptr;
   CPUArchState *new_env;
-  
+
   new_env = cpu_copy(env);
   fprintf(stderr,"store CPU %lx\n",new_env->eip);
   fprintf(stderr,"store rax %lx\n",new_env->regs[0]);
-  
+
   /* Store ELF data segments */
   void *pdata = (void *)malloc(elf_end_data - elf_start_data);
   if(pdata == NULL){
@@ -1302,18 +1304,18 @@ uint32_t ptc_storeCPUState(void) {
     exit(0);
   }
   memcpy(pdata,(void *)elf_start_data,elf_end_data - elf_start_data);
- 
+
   /* Store ELF stack segments */
   void *pstack = (void *)malloc(elf_start_stack - (abi_ulong)env->regs[4]);
   if(pstack == NULL){
     fprintf(stderr,"Alloc stack memory failed!\n");
     fprintf(stderr,"rsp: %lx   elfstack: %lx\n",env->regs[4],elf_start_stack);
-   
+
     return 0;
   }
   memcpy(pstack,(void *)env->regs[4],elf_start_stack - (abi_ulong)env->regs[4]);
 
-  insertArchCPUStateQueueLine(*new_env,pdata,pstack); 
+  insertArchCPUStateQueueLine(*new_env,pdata,pstack);
   return 1;
 }
 
@@ -1326,7 +1328,27 @@ void ptc_recoverStack(void){
   free(current_data);
 
   memcpy((void *)elf_end_data,current_code,brk_page - elf_end_data);
-  free(current_code); 
+  free(current_code);
+}
+
+void ptc_recoverOnlyStack(void * storedStack, bool needFree){
+  CPUArchState *env = (CPUArchState *)cpu->env_ptr;
+  memcpy((void *)env->regs[4],storedStack,elf_start_stack-(abi_ulong)env->regs[4]);
+  if (needFree)
+    free(current_stack);
+}
+
+void * ptc_storeOnlyStack(void){
+  CPUArchState *env = (CPUArchState *)cpu->env_ptr;
+  current_stack = (void *)malloc(elf_start_stack - (abi_ulong)env->regs[4]);
+  if(current_stack==NULL){
+    fprintf(stderr,"Alloc stack memory failed!\n");
+    fprintf(stderr,"rsp: %lx   elfstack: %lx\n",env->regs[4],elf_start_stack);
+    abort();
+  }
+  memcpy(current_stack,(void *)env->regs[4],elf_start_stack - (abi_ulong)env->regs[4]);
+
+  return current_stack;
 }
 
 void ptc_storeStack(void){
@@ -1354,9 +1376,10 @@ void ptc_storeStack(void){
     abort();
   }
   memcpy(current_code,(void *)elf_end_data,brk_page - elf_end_data);
+
 }
 
-void ptc_getBranchCPUeip(void){ 
+void ptc_getBranchCPUeip(void){
   traversArchCPUStateQueueLine();
 }
 
@@ -1384,7 +1407,7 @@ uint32_t ptc_is_image_addr(uint64_t va){
 //    fprintf(stderr,"heap malloc %lx\n",brk_page);
 //    return 1;
 //  }
-                                         
+
   if(va<info->start_stack && va>(info->start_stack&0xfff00000))
       return 1;
 
@@ -1411,14 +1434,14 @@ unsigned long ptc_do_syscall2(void){
       fprintf(stderr,"exit syscall\n");
       return 0;
     }
-   
+
     if(env->regs[R_EAX]==3){
         env->eip = env->exception_next_eip;
-        cpu->exception_index = -1; 
+        cpu->exception_index = -1;
         fprintf(stderr,"close syscall\n");
-        return env->eip; 
+        return env->eip;
     }
- 
+
     env->regs[R_EAX] = do_syscall(env,
 				  env->regs[R_EAX],
 				  env->regs[R_EDI],
@@ -1429,20 +1452,20 @@ unsigned long ptc_do_syscall2(void){
 				  env->regs[9],
 				  0,0);
     env->eip = env->exception_next_eip;
-    cpu->exception_index = -1; 
+    cpu->exception_index = -1;
 
-    // Deal with CPUX86State->df, I don't know why do this?   
-    CC_SRC = env->eflags & (CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C); 
+    // Deal with CPUX86State->df, I don't know why do this?
+    CC_SRC = env->eflags & (CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);
     env->df = 1 - (2 * ((env->eflags >> 10) & 1));
     CC_OP = CC_OP_EFLAGS;
-    env->eflags &= ~(DF_MASK | CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);   
- 
-    return env->eip; 
+    env->eflags &= ~(DF_MASK | CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);
+
+    return env->eip;
 }
 
 static void ptc_do_syscall_loader(void){
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
-    
+
     env->regs[R_EAX] = do_syscall(env,
 				  env->regs[R_EAX],
 				  env->regs[R_EDI],
@@ -1453,13 +1476,13 @@ static void ptc_do_syscall_loader(void){
 				  env->regs[9],
 				  0,0);
     env->eip = env->exception_next_eip;
-    cpu->exception_index = -1; 
+    cpu->exception_index = -1;
 
-    // Deal with CPUX86State->df, I don't know why do this?   
-    CC_SRC = env->eflags & (CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C); 
+    // Deal with CPUX86State->df, I don't know why do this?
+    CC_SRC = env->eflags & (CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);
     env->df = 1 - (2 * ((env->eflags >> 10) & 1));
     CC_OP = CC_OP_EFLAGS;
-    env->eflags &= ~(DF_MASK | CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);   
+    env->eflags &= ~(DF_MASK | CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);
 }
 static void ptc_do_syscall_library(void){
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
@@ -1472,12 +1495,12 @@ static void ptc_do_syscall_library(void){
     }
 //    if(env->regs[R_EAX]==10){
 //        env->eip = env->exception_next_eip;
-//        cpu->exception_index = -1; 
+//        cpu->exception_index = -1;
 //        fprintf(stderr,"mprotect syscall\n");
 //    }
     if(env->regs[R_EAX]==3){
         env->eip = env->exception_next_eip;
-        cpu->exception_index = -1; 
+        cpu->exception_index = -1;
         fprintf(stderr,"close syscall\n");
         return;
     }
@@ -1491,13 +1514,13 @@ static void ptc_do_syscall_library(void){
 				  env->regs[9],
 				  0,0);
     env->eip = env->exception_next_eip;
-    cpu->exception_index = -1; 
+    cpu->exception_index = -1;
 
-    // Deal with CPUX86State->df, I don't know why do this?   
-    CC_SRC = env->eflags & (CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C); 
+    // Deal with CPUX86State->df, I don't know why do this?
+    CC_SRC = env->eflags & (CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);
     env->df = 1 - (2 * ((env->eflags >> 10) & 1));
     CC_OP = CC_OP_EFLAGS;
-    env->eflags &= ~(DF_MASK | CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);   
+    env->eflags &= ~(DF_MASK | CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);
 
 }
 
@@ -1585,7 +1608,7 @@ void initArchCPUStateQueueLine(void){
   if(CPUQueueLine.front == NULL){
     fprintf(stderr,"Initial queue node failed!\n");
     exit(0);
-  }  
+  }
   CPUQueueLine.front->next = NULL;
 }
 
@@ -1599,7 +1622,7 @@ void insertArchCPUStateQueueLine(CPUArchState element,void *elf_data,void *elf_s
   q->data.elf_data = elf_data;
   q->data.elf_stack = elf_stack;
   q->next = NULL;
-  // CPUQueueLine.rear represents the last element 
+  // CPUQueueLine.rear represents the last element
   CPUQueueLine.rear->next = q;
   CPUQueueLine.rear = q;
 }
@@ -1617,13 +1640,13 @@ BranchState deletArchCPUStateQueueLine(void){
      if(CPUQueueLine.rear == q){
        CPUQueueLine.rear = CPUQueueLine.front;
      }
-    free(q); 
+    free(q);
   }
   else{
     fprintf(stderr,"Branch CPU state line is null!\n");
     exit(0);
   }
-  
+
   return element;
 }
 
