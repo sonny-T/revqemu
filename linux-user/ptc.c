@@ -1281,6 +1281,10 @@ void ptc_data_start(uint64_t start, uint64_t entry){
 uint32_t ptc_deletCPULINEState(void){
   CPUArchState *env = (CPUArchState *)cpu->env_ptr;
   BranchState datatmp;
+
+  if(isEmpty())
+    return 0;
+
   datatmp = deletArchCPUStateQueueLine();
   *env = datatmp.cpu_data;
   fprintf(stderr,"load......... CPU %lx\n",env->eip);
