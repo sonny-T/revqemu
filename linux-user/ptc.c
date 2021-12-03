@@ -299,6 +299,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.translate = &ptc_translate;
   result.exec = &ptc_exec;
   result.exec1 = &ptc_exec1;
+  result.isdecodeblock = &ptc_isdecodeblock;
   result.run_library = &ptc_run_library;
   result.data_start = &ptc_data_start;
   result.disassemble = &ptc_disassemble;
@@ -1083,6 +1084,8 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     int flags = 0;
     cpu_get_tb_cpu_state(cpu->env_ptr, &temp, &temp, &flags);
 
+    flags = 4243635;
+
 #if defined(TARGET_S390X)
     flags |= FLAG_MASK_32 | FLAG_MASK_64;
 #endif
@@ -1113,10 +1116,8 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     if(tb->isRet)
       is_ret = tb->isRet;
     cfi_addr = tb->CFIAddr;
-    if(tb->isAdd){
+    if(tb->isAdd)
       is_add = tb->isAdd;
-      fprintf(stderr,"add-------------: %lx\n",is_add);
-    }
 
    // printf("virtual_address: %lx  tb ->pc: %lx\n",virtual_address,tb->pc);
 
@@ -1161,6 +1162,8 @@ int64_t ptc_exec(uint64_t virtual_address){
     target_ulong temp;
     int flags = 0;
     cpu_get_tb_cpu_state(cpu->env_ptr, &temp, &temp, &flags);
+
+    flags = 4243635;
 
 #if defined(TARGET_S390X)
     flags |= FLAG_MASK_32 | FLAG_MASK_64;
@@ -1232,6 +1235,38 @@ int64_t ptc_exec1(uint64_t begin, uint64_t end){
       return -1;
 
     return env->eip;
+}
+
+int64_t ptc_isdecodeblock(uint64_t virtual_address){
+    TCGContext *s = &tcg_ctx;
+    TranslationBlock *tb = NULL;
+   
+    target_ulong cs_base = 0;
+    
+    CPUArchState *env = (CPUArchState *)cpu->env_ptr;
+    PTCInstructionList instructions1;
+    PTCInstructionList *instructions = &instructions1;
+
+    env->eip = virtual_address;
+
+   
+    target_ulong temp;
+    int flags = 0;
+    cpu_get_tb_cpu_state(cpu->env_ptr, &temp, &temp, &flags);
+
+#if defined(TARGET_S390X)
+    flags |= FLAG_MASK_32 | FLAG_MASK_64;
+#endif
+
+    tb = cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)];
+    if(unlikely(!tb || tb->pc!= virtual_address)){
+        tb = tb_gen_code3(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions,0);
+        cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
+    }
+
+    if(tb->isIllegal)
+      return 0;
+    return 1;
 }
 
 uint64_t ptc_run_library(size_t flag){
