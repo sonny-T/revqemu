@@ -1254,6 +1254,8 @@ int64_t ptc_isdecodeblock(uint64_t virtual_address){
     int flags = 0;
     cpu_get_tb_cpu_state(cpu->env_ptr, &temp, &temp, &flags);
 
+    flags = 4243635;
+
 #if defined(TARGET_S390X)
     flags |= FLAG_MASK_32 | FLAG_MASK_64;
 #endif
