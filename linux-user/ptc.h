@@ -310,6 +310,7 @@ typedef struct {
   uint64_t *regs;
   uint64_t *isIndirect;
   uint64_t *isCall;
+  uint64_t *isDirectcall;
   uint64_t *CallNext;
   uint64_t *isIndirectJmp;
   uint64_t *isDirectJmp;

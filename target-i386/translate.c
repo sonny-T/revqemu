@@ -96,11 +96,12 @@ typedef struct DisasContext {
 #ifdef CONFIG_LIBTINYCODE    
     int is_indirect; /* 1 = means indirect instruction */
 
-    int is_call; /* 1 = means have direct and indirect call */ 
+    int is_call; /* 1 = means have direct and indirect call */
+    target_ulong is_directcall; 
     target_ulong callnext;
 
     int is_indirectjmp; /* 1 = means have indirect jmp */
-    int is_directjmp; /* 1 = means have direct jmp */
+    target_ulong is_directjmp; /* 1 = means have direct jmp */
     int is_ret; /* 1 = means have ret */
     int is_syscall;
     //int is_illegal; // true means that there have illegal instructions in tb
@@ -6496,16 +6497,17 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
                 tval = (int16_t)insn_get(env, s, MO_16);
             }
             next_eip = s->pc - s->cs_base;
-#ifdef CONFIG_LIBTINYCODE
-            s->is_call = 1;
-	    s->callnext = next_eip;
-#endif
             tval += next_eip;
             if (dflag == MO_16) {
                 tval &= 0xffff;
             } else if (!CODE64(s)) {
                 tval &= 0xffffffff;
             }
+#ifdef CONFIG_LIBTINYCODE
+            s->is_call = 1;
+	    s->callnext = next_eip;
+            s->is_directcall = tval;
+#endif
             tcg_gen_movi_tl(cpu_T[0], next_eip);
             gen_push_v(s, cpu_T[0]);
             gen_jmp(s, tval);
@@ -6526,9 +6528,6 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
         }
         goto do_lcall;
     case 0xe9: /* jmp im */
-#ifdef CONFIG_LIBTINYCODE
-        s->is_directjmp = 1;
-#endif
         if (dflag != MO_16) {
             tval = (int32_t)insn_get(env, s, MO_32);
         } else {
@@ -6540,6 +6539,9 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
         } else if (!CODE64(s)) {
             tval &= 0xffffffff;
         }
+#ifdef CONFIG_LIBTINYCODE
+        s->is_directjmp = tval;
+#endif
         gen_jmp(s, tval);
         break;
     case 0xea: /* ljmp im */
@@ -6557,14 +6559,14 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
         }
         goto do_ljmp;
     case 0xeb: /* jmp Jb */
-#ifdef CONFIG_LIBTINYCODE
-        s->is_directjmp = 1;
-#endif
         tval = (int8_t)insn_get(env, s, MO_8);
         tval += s->pc - s->cs_base;
         if (dflag == MO_16) {
             tval &= 0xffff;
         }
+#ifdef CONFIG_LIBTINYCODE
+        s->is_directjmp = tval;
+#endif
         gen_jmp(s, tval);
         break;
     case 0x70 ... 0x7f: /* jcc Jb */
@@ -8054,6 +8056,7 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
 #ifdef CONFIG_LIBTINYCODE
     dc->is_indirect  = 0;
     dc->is_call = 0;
+    dc->is_directcall = 0;
     dc->callnext = 0;
     dc->is_indirectjmp = 0;
     dc->is_directjmp = 0;
@@ -8109,10 +8112,12 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
 	    tb->isCall = pc_ptr;
 	    tb->CallNext = dc->callnext;
 	}
+        if(dc->is_directcall)
+            tb->isDirectcall = dc->is_directcall; 
         if(dc->is_indirectjmp)
 	    tb->isIndirectJmp = pc_ptr;
 	if(dc->is_directjmp)
-            tb->isDirectJmp = pc_ptr;
+            tb->isDirectJmp = dc->is_directjmp;
         if(dc->is_ret)
 	    tb->isRet = pc_ptr;	
         if(dc->is_syscall)

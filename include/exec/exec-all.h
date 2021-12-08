@@ -208,6 +208,7 @@ struct TranslationBlock {
 #ifdef CONFIG_LIBTINYCODE 
     target_ulong isIndirect;   
     target_ulong isCall;
+    target_ulong isDirectcall;
     target_ulong CallNext;
     target_ulong isIndirectJmp;
     target_ulong isDirectJmp;

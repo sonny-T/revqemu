@@ -224,6 +224,7 @@ int32_t *ptc_exception_syscall;
 target_ulong ptc_syscall_next_eip = 0;
 uint64_t is_indirect = 0;
 uint64_t is_call = 0;
+uint64_t is_directcall = 0;
 target_ulong callnext = 0;
 uint64_t is_indirectjmp = 0;
 uint64_t is_directjmp = 0;
@@ -324,6 +325,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.syscall_next_eip = &ptc_syscall_next_eip;
   result.isIndirect = &is_indirect;
   result.isCall = &is_call;
+  result.isDirectcall = &is_directcall;
   result.CallNext = &callnext;
   result.isIndirectJmp = &is_indirectjmp;
   result.isDirectJmp = &is_directjmp;
@@ -727,6 +729,7 @@ static TranslationBlock *tb_gen_code3(TCGContext *s, CPUState *cpu,
     tb->cflags = cflags;
     tb->isIndirect = 0;
     tb->isCall = 0;
+    tb->isDirectcall = 0;
     tb->CallNext = 0;
     tb->isIndirectJmp = 0;
     tb->isDirectJmp = 0;
@@ -848,6 +851,7 @@ static TranslationBlock *tb_gen_code2(TCGContext *s, CPUState *cpu,
     tb->cflags = cflags;
     tb->isIndirect = 0;
     tb->isCall = 0;
+    tb->isDirectcall = 0;
     tb->CallNext = 0;
     tb->isIndirectJmp = 0;
     tb->isDirectJmp = 0;
@@ -1066,6 +1070,7 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     cpu->exception_index = -1;
     is_indirect = 0;
     is_call = 0;
+    is_directcall = 0;
     env->eip = virtual_address;
 
     is_syscall = 0;
@@ -1107,6 +1112,8 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
       is_call = tb->isCall;
       callnext = tb->CallNext;
     }
+    if(tb->isDirectcall)
+      is_directcall = tb->isDirectcall;
     if(tb->isSyscall)
       is_syscall = tb->isSyscall;
     if(tb->isIndirectJmp)
