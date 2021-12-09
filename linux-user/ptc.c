@@ -300,6 +300,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.translate = &ptc_translate;
   result.exec = &ptc_exec;
   result.exec1 = &ptc_exec1;
+  result.exec2 = &ptc_exec2;
   result.isdecodeblock = &ptc_isdecodeblock;
   result.run_library = &ptc_run_library;
   result.data_start = &ptc_data_start;
@@ -1242,6 +1243,40 @@ int64_t ptc_exec1(uint64_t begin, uint64_t end){
       return -1;
 
     return env->eip;
+}
+
+size_t ptc_exec2(uint64_t begin, uint64_t end){
+    TCGContext *s = &tcg_ctx;
+    TranslationBlock *tb = NULL;
+   
+    target_ulong cs_base = 0;
+    uint8_t *tc_ptr;
+    CPUArchState *env = (CPUArchState *)cpu->env_ptr;
+    PTCInstructionList instructions1;
+    PTCInstructionList *instructions = &instructions1;
+
+    env->eip = begin;
+
+    target_ulong temp;
+    int flags = 0;
+    cpu_get_tb_cpu_state(cpu->env_ptr, &temp, &temp, &flags);
+
+    flags = 4243635;
+
+#if defined(TARGET_S390X)
+    flags |= FLAG_MASK_32 | FLAG_MASK_64;
+#endif
+    tb = tb_gen_code3(s, cpu, (target_ulong) begin, cs_base, flags, 0,instructions,end);
+
+    if(tb->isIllegal)
+      return 0;
+
+    if(tb->isSyscall){
+      cpu->exception_index = -1;
+      return 0;
+    }
+   
+    return (size_t)tb->size;
 }
 
 int64_t ptc_isdecodeblock(uint64_t virtual_address){

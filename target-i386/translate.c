@@ -8124,7 +8124,7 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
             tb->isSyscall = pc_ptr;
         //if(dc->is_illegal)
         //    tb->isIllegal = dc->is_illegal;
-        tb->CFIAddr = pc_start;
+        tb->CFIAddr = pc_ptr;
 
         if(dc->is_add)
             tb->isAdd = dc->is_add;   
