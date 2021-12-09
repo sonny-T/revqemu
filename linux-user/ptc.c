@@ -1310,6 +1310,8 @@ int64_t ptc_isdecodeblock(uint64_t virtual_address){
 
     if(tb->isIllegal)
       return 0;
+    if(!tb->isDirectJmp && !tb->isDirectcall && (tb->icount==1))
+      return 0;
     return 1;
 }
 
