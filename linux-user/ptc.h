@@ -322,6 +322,7 @@ typedef struct {
   uint64_t *CFIAddr;
   uint64_t *isSyscall;
   uint64_t *BlockSize;
+  uint64_t *iCount;
   uint64_t *isIllegal;
   uint64_t *isAdd;
 

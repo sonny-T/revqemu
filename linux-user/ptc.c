@@ -232,6 +232,7 @@ uint64_t is_ret = 0;
 uint64_t cfi_addr = 0;
 uint64_t is_syscall = 0;
 uint64_t block_size = 0;
+uint64_t iCount = 0;
 uint64_t is_illegal = 0;
 uint64_t is_add = 0;
 
@@ -336,6 +337,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.CFIAddr = &cfi_addr;
   result.isSyscall = &is_syscall;
   result.BlockSize = &block_size;
+  result.iCount = &iCount;
   result.isIllegal = &is_illegal;
   result.isAdd = &is_add;
 
@@ -1080,7 +1082,7 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
     is_ret = 0;
     callnext = 0;
     cfi_addr = 0;
-    block_size = 0;
+    iCount = 0;
     is_illegal = 0;
     is_add = 0;
 
@@ -1102,6 +1104,7 @@ size_t ptc_translate(uint64_t virtual_address,uint32_t force, PTCInstructionList
         cpu->tb_jmp_cache[tb_jmp_cache_hash_func((target_ulong) virtual_address)] = tb;
     }
 
+    iCount = tb->icount;
     if(tb->isIllegal){
       is_illegal = tb->isIllegal;
       *dymvirtual_address = 0;
