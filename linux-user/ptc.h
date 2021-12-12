@@ -252,7 +252,7 @@ EXPORTED(int64_t, ptc_exec, (uint64_t va));
 EXPORTED(int64_t, ptc_exec1, (uint64_t begin,uint64_t end));
 EXPORTED(size_t, ptc_exec2, (uint64_t begin,uint64_t end));
 EXPORTED(int64_t, ptc_isdecodeblock, (uint64_t va));
-EXPORTED(size_t, ptc_getBadBlockSize, (uint64_t va));
+EXPORTED(size_t, ptc_getBadBlockSize, (uint64_t va, int *stop));
 EXPORTED(uint64_t, ptc_run_library, (size_t flag));
 EXPORTED(void, ptc_data_start, (uint64_t start, uint64_t entry));
 EXPORTED(unsigned long, ptc_do_syscall2, (void));
