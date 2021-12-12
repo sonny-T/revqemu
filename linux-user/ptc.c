@@ -303,6 +303,7 @@ int ptc_load(void *handle, PTCInterface *output, const char *ptc_filename,
   result.exec1 = &ptc_exec1;
   result.exec2 = &ptc_exec2;
   result.isdecodeblock = &ptc_isdecodeblock;
+  result.getBadBlockSize = &ptc_getBadBlockSize;
   result.run_library = &ptc_run_library;
   result.data_start = &ptc_data_start;
   result.disassemble = &ptc_disassemble;
@@ -1253,7 +1254,6 @@ size_t ptc_exec2(uint64_t begin, uint64_t end){
     TranslationBlock *tb = NULL;
    
     target_ulong cs_base = 0;
-    uint8_t *tc_ptr;
     CPUArchState *env = (CPUArchState *)cpu->env_ptr;
     PTCInstructionList instructions1;
     PTCInstructionList *instructions = &instructions1;
@@ -1316,6 +1316,43 @@ int64_t ptc_isdecodeblock(uint64_t virtual_address){
     if(!tb->isDirectJmp && !tb->isDirectcall && (tb->icount==1))
       return 0;
     return 1;
+}
+
+size_t ptc_getBadBlockSize(uint64_t virtual_address){
+    TCGContext *s = &tcg_ctx;
+    TranslationBlock *tb = NULL;
+   
+    target_ulong cs_base = 0;
+    size_t size = 0;
+    
+    CPUArchState *env = (CPUArchState *)cpu->env_ptr;
+    PTCInstructionList instructions1;
+    PTCInstructionList *instructions = &instructions1;
+
+    target_ulong temp;
+    int flags = 0;
+
+
+    env->eip = virtual_address;
+    int count = 0;
+    while(1){
+        count++;
+        cpu_get_tb_cpu_state(cpu->env_ptr, &temp, &temp, &flags);
+        flags = 4243635;
+#if defined(TARGET_S390X)
+        flags |= FLAG_MASK_32 | FLAG_MASK_64;
+#endif
+        tb = tb_gen_code3(s, cpu, (target_ulong) virtual_address, cs_base, flags, 0,instructions,0);
+        size += tb->size;
+        env->eip += tb->size; 
+    
+        if(tb->isIndirect || tb->isCall || tb->isIndirectJmp || tb->isDirectJmp || tb->isRet || tb->isJcc)
+          break;
+        assert(count<500);
+        tb = NULL;
+    }
+
+    return size;
 }
 
 uint64_t ptc_run_library(size_t flag){

@@ -213,6 +213,7 @@ struct TranslationBlock {
     target_ulong isIndirectJmp;
     target_ulong isDirectJmp;
     target_ulong isRet;
+    int isJcc;
     target_ulong CFIAddr;
     target_ulong isSyscall;
     uint32_t isIllegal;

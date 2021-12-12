@@ -252,6 +252,7 @@ EXPORTED(int64_t, ptc_exec, (uint64_t va));
 EXPORTED(int64_t, ptc_exec1, (uint64_t begin,uint64_t end));
 EXPORTED(size_t, ptc_exec2, (uint64_t begin,uint64_t end));
 EXPORTED(int64_t, ptc_isdecodeblock, (uint64_t va));
+EXPORTED(size_t, ptc_getBadBlockSize, (uint64_t va));
 EXPORTED(uint64_t, ptc_run_library, (size_t flag));
 EXPORTED(void, ptc_data_start, (uint64_t start, uint64_t entry));
 EXPORTED(unsigned long, ptc_do_syscall2, (void));
@@ -282,6 +283,7 @@ typedef struct {
   ptc_exec1_ptr_t exec1;
   ptc_exec2_ptr_t exec2;
   ptc_isdecodeblock_ptr_t isdecodeblock;
+  ptc_getBadBlockSize_ptr_t getBadBlockSize;
   ptc_run_library_ptr_t run_library;
   ptc_data_start_ptr_t data_start;
   ptc_disassemble_ptr_t disassemble;

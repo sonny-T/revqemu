@@ -102,6 +102,7 @@ typedef struct DisasContext {
 
     int is_indirectjmp; /* 1 = means have indirect jmp */
     target_ulong is_directjmp; /* 1 = means have direct jmp */
+    int is_jcc;
     int is_ret; /* 1 = means have ret */
     int is_syscall;
     //int is_illegal; // true means that there have illegal instructions in tb
@@ -6570,6 +6571,9 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
         gen_jmp(s, tval);
         break;
     case 0x70 ... 0x7f: /* jcc Jb */
+#ifdef CONFIG_LIBTINYCODE
+        s->is_jcc = 1;
+#endif
         tval = (int8_t)insn_get(env, s, MO_8);
         goto do_jcc;
     case 0x180 ... 0x18f: /* jcc Jv */
@@ -6578,6 +6582,9 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
         } else {
             tval = (int16_t)insn_get(env, s, MO_16);
         }
+#ifdef CONFIG_LIBTINYCODE
+        s->is_jcc = 1;
+#endif
     do_jcc:
         next_eip = s->pc - s->cs_base;
         tval += next_eip;
@@ -7093,6 +7100,9 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
                 break;
             default:
             case 3: /* jcxz */
+#ifdef CONFIG_LIBTINYCODE
+                s->is_jcc = 1;
+#endif
                 gen_op_jz_ecx(s->aflag, l1);
                 break;
             }
@@ -8060,6 +8070,7 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
     dc->callnext = 0;
     dc->is_indirectjmp = 0;
     dc->is_directjmp = 0;
+    dc->is_jcc = 0;
     dc->is_ret = 0;
     dc->is_syscall = 0;
     dc->is_add = 0;
@@ -8112,6 +8123,8 @@ static inline void gen_intermediate_code_internal(X86CPU *cpu,
 	    tb->isCall = pc_ptr;
 	    tb->CallNext = dc->callnext;
 	}
+        if(dc->is_jcc)
+            tb->isJcc = 1;
         if(dc->is_directcall)
             tb->isDirectcall = dc->is_directcall; 
         if(dc->is_indirectjmp)
